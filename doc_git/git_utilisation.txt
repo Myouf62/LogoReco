@@ -1,0 +1,100 @@
+###### 1. POUR LINUX ######
+
+Le dépôt local est composé de trois "arbres" gérés par git :
+- le premier (working dir) est votre espace de travail qui contient réellement vos fichiers,
+- le deuxième (Index) joue le rôle d'espace de transit pour vos fichiers,
+- le troisième (HEAD) pointe vers la dernière validation que vous ayez faite.
+
+[working dir] --(add)--> [Index] --(commit)--> [HEAD]
+
+1) Utilisation courante
+1.1) Mettre à jour le dépôt local vers les dernières validations :
+$ git pull
+
+1.2) Proposer un changement (l'ajouter à l'Index) :
+$ git add <filename>
+ou
+$ git add *
+
+1.3) Valider un changement (l'ajouter au HEAD) :
+$ git commit -m "Message de validation"
+
+1.4) Envoyer des changements au dépôt distant :
+$ git push origin <branchname>
+// branche principale : master
+
+2) Utilisation un peu plus spécifique
+2.1) Créer une nouvelle branche nommée "mybranch_x" et passer dessus pour l'utiliser :
+$ git checkout -b mybranch_x
+
+2.2) Rendre une branche dispo pour les autres (l'envoyer vers le dépôt distant) :
+$ git push origin <branch>
+
+2.3) Retourner sur la branche principale :
+$ git checkout master
+
+2.4) Supprimer la branche :
+$ git branch -d mybranch_x
+
+2.5) Fusionner une autre branche avec la branche active :
+$ git merge <branch>
+// voir gestion des conflits sur http://rogerdudler.github.io/git-guide/index.fr.html
+
+2.6) Voir les infos (et notamment les identifiants) des précédents commit :
+$ git log
+
+2.7) Créer un tag :
+$ git tag <tag> <identifiant du changement que vous voulez référencer avec ce tag>
+// par exemple 1.0.0, basé sur le premier commit de Myouf62 :
+$ git tag 1.0.0 77cc7d62f6
+
+2.8) Remplacer les changements locaux :
+2.8.1) Annuler les changements locaux :
+$ git checkout -- <filename>
+// cela remplacera les changements dans votre arbre de travail avec le dernier contenu du HEAD.
+// les changements déjà ajoutés à l'index, aussi bien les nouveaux fichiers, seront gardés.
+
+ou
+
+2.8.2) Supprimer tous les changements et validations locaux :
+// récupérer le dernier historique depuis le serveur et pointer la branche principale locale dessus :
+$ git fetch origin
+$ git reset --hard origin/master
+
+###### 2. POUR Windows (GitHub Desktop) ######
+
+De manière générale, une modification/un ajout de fonctionnalité = un commit
+=> Pas de commit avec des milliers de changements touchant à différentes fonctionnalités
+=> Ce n'est pas la peine non plus de commit à chaque ligne modifiée
+
+1) Utilisation courante
+Que ce soit pour pull/commit/push, tout va passer par le boutin "Sync",
+en haut à droite de l'écran lorsque vous vous trouvez sur le repo.
+
+1.1) Pour pull, appuyez tout simplement sur le bouton Sync. 
+
+1.2) Pour commit, positionnez vous sur l'onglet "Changes" en haut de l'écran.
+GitDesktop va vous lister tous vos changements, et vous pourrez ici rédiger votre message de commit.
+Vous devez également sélectionner les fichiers faisant partie de votre commit. Une fois votre message 
+de commit rédigé et vos fichiers séléctionnés, effectuez votre commit en cliquant
+sur le bouton "Commit to Master" en bas de l'écran.
+
+1.3) Enfin pour effectuer le push, cliquez sur le bouton "Sync" en haut à droite de l'écran.
+
+2) Utilisation avancée
+
+2.1) Historique des commits
+Via l'onglet "History" en haut au centre de l'écran, vous pouvez consulter la chronologie des commits effectués
+par les membres de l'équipe. Vous pouvez également consulter chaque commit et voir précisément les modifications
+effectuées sur les fichiers à droite de l'écran.
+
+2.2) Annuler modification d'un fichier
+Sur l'onglet "Changes", effectuez un clic droit sur un fichier modifié afin de faire apparaitre un menu
+contextuel. L'option "Discard changes" vous permet d'annuler les changements effectués sur ce fichier particulier,
+et de le restaurer à l'état de la synchronisation précédente.
+
+2.3) Ignorer un fichier 
+Sur l'onglet "Changes", effectuez un clic droit sur un fichier modifié afin de faire apparaitre un menu
+contextuel. L'option "Ignore file" vous permet d'ignorer ce fichier dans votre commit. Il disparaitra alors
+de la liste. /!\ Un fichier ignoré n'apparaîtra PLUS dans la liste des changements, mêmes dans vos commits
+suivants.

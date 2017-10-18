@@ -1,0 +1,32 @@
+###### 1. POUR LINUX ######
+
+1) Installation
+
+$ sudo apt-get install git-core gitk
+// git-core : git
+// gitk : interface graphique qui aide à mieux visualiser les logs
+
+2) Configuration
+
+$ git config --global color.diff auto
+$ git config --global color.status auto
+$ git config --global color.branch auto
+$ git config --global user.name "votre_pseudo"
+$ git config --global user.email moi@email.com
+
+3) Clonage du projet
+
+// aller dans le répertoire dans lequel vous voulez avoir votre repo git créé (ex: votre bureau)
+$ git clone https://github.com/LogoReco.git
+
+###### 2. POUR Windows ######
+
+1) Installation
+
+Installer GitHub Desktop : https://desktop.github.com/
+
+2) Clonage du projet
+
+Ouvrir GitHub Desktop, cliquer sur le petit "+" dans le coin supérieur gauche.
+Cliquer sur l'onglet "Clone" et aller chercher "LogoReco".
+Choisissez ensuite dans quel répertoire vous voulez avoir votre repo git créé (ex: votre bureau)
