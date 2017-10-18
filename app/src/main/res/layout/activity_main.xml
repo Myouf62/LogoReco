@@ -18,32 +18,32 @@
             android:weightSum="2">
 
             <Button
-                android:id="@+id/Capture"
+                android:id="@+id/captureButton"
                 android:layout_width="0dp"
                 android:layout_height="fill_parent"
                 android:layout_weight="1"
-                android:text="1" />
+                android:text="Capture" />
 
             <Button
-                android:id="@+id/Library"
+                android:id="@+id/libraryButton"
                 android:layout_width="0dp"
                 android:layout_height="fill_parent"
                 android:layout_weight="1"
-                android:text="2" />
+                android:text="Library" />
 
         </LinearLayout>
 
-        <ImageView
-            android:id="@+id/Image"
-            android:layout_width="fill_parent"
-            android:layout_height="0dp"
-            android:layout_weight="8"/>
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:layout_weight="8" />
 
-        <Button
-            android:id="@+id/Analysis"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="1" />
+    <Button
+        android:id="@+id/analysisButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Analysis" />
 
 </LinearLayout>
