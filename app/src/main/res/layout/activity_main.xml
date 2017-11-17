@@ -22,14 +22,14 @@
                 android:layout_width="0dp"
                 android:layout_height="fill_parent"
                 android:layout_weight="1"
-                android:text="Capture" />
+                android:text="@string/btnCapture_name" />
 
             <Button
                 android:id="@+id/libraryButton"
                 android:layout_width="0dp"
                 android:layout_height="fill_parent"
                 android:layout_weight="1"
-                android:text="Library" />
+                android:text="@string/btnLibrary_name" />
 
         </LinearLayout>
 
@@ -44,6 +44,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="Analysis" />
+        android:text="@string/btnAnalysis_name" />
 
 </LinearLayout>

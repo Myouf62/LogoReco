@@ -77,10 +77,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
 
             case R.id.analysisButton:
-                //startAnalysisActivity();
+                startAnalysisActivity();
                 break;
         }
 
+    }
+
+    protected void startAnalysisActivity(){
+        Intent intent = new Intent(this, AnalysisActivity.class);
+        startActivity(intent);
     }
 
     protected void startPhotoLibraryActivity(){

@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">LogoReco</string>
+    <string name="btnCapture_name">Capture</string>
+    <string name="btnLibrary_name">Library</string>
+    <string name="btnAnalysis_name">Analysis</string>
+    <string name="txtViewAnalysis_result">After analysis, the logo identified in your image seems to be:</string>
 </resources>
