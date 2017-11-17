@@ -11,13 +11,13 @@
     tools:context="com.example.myouf.logoreco.AnalysisActivity">
 
     <ImageView
-        android:id="@+id/imageView"
+        android:id="@+id/imageViewResult"
         android:layout_width="fill_parent"
         android:layout_height="0dp"
         android:layout_weight="8" />
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/txtViewAnalysis"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="2"

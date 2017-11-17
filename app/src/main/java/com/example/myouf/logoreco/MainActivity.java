@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button captureButton;
     Button libraryButton;
     Button analysisButton;
-    ImageView imageView;
+    ImageView imageViewBase;
 
     //Declaration des constantes code de retour des requetes intent
     private static final int PHOTO_LIB_REQUEST = 1;
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         analysisButton = (Button)findViewById(R.id.analysisButton);
         analysisButton.setOnClickListener(this);
 
-        imageView = (ImageView) findViewById(R.id.imageView);
+        imageViewBase = (ImageView) findViewById(R.id.imageViewBase);
 
     }
 
@@ -115,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (checkPermissionREAD_EXTERNAL_STORAGE(this)) {
             try {
                 Bitmap srcBmp = BitmapFactory.decodeStream(this.getContentResolver().openInputStream(selectedImageUri), null, null);
-                imageView.setImageBitmap(srcBmp);
+                imageViewBase.setImageBitmap(srcBmp);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
