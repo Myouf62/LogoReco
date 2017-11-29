@@ -8,6 +8,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
+import android.widget.TextView;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -47,7 +49,9 @@ import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 
 public class AnalysisActivity extends AppCompatActivity {
 
+    final int NUMBER_OF_CLASSES = 3;
     ImageView imageViewResult;
+    TextView textViewAnalysis;
     Uri selectedImageUri;
 
     @Override
@@ -56,21 +60,14 @@ public class AnalysisActivity extends AppCompatActivity {
         setContentView(R.layout.activity_analysis);
 
         imageViewResult = (ImageView) findViewById(R.id.imageViewResult);
-        // En guise de test, nous utilisons pour le moment l'image base de Coca utilisée dans le TP4
-        imageViewResult.setImageResource(R.drawable.coca_image_base);
-
+        textViewAnalysis = (TextView) findViewById(R.id.textViewAnalysis);
         selectedImageUri = getIntent().getParcelableExtra("selectedImageUri");
 
         testOfAdaptedTP4();
     }
 
     private void testOfAdaptedTP4() {
-        // Image de base que l'on va comparer aux différentes images classées
-        // Il est possible de remplacer "\\cocaImageBase.jpg" par "\\spriteImageBase.jpg"
-        //String pathImage = "drawable://" + R.drawable.coca_image_base;
-        //Uri path = Uri.parse("android.resource://res/drawable/drawable.coca_image");
         File file = uriToCache(this,selectedImageUri,"imageToTreat");
-        //Mat image = imread(getResources().getDrawable(R.drawable.coca_image_base,null).toString());
 
         Mat image = imread(file.getAbsolutePath());
 
@@ -79,73 +76,55 @@ public class AnalysisActivity extends AppCompatActivity {
 
         // Lecture des images par classe
         // Classe Coca
-        Uri uriCoca1 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(R.drawable.coca_1) +
-                "/" + getResources().getResourceTypeName(R.drawable.coca_1) +
-                "/" + getResources().getResourceEntryName(R.drawable.coca_1));
-        File fileCoca1 = uriToCache(this,uriCoca1,"coca_1");
-        Uri uriCoca2 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(R.drawable.coca_2) +
-                "/" + getResources().getResourceTypeName(R.drawable.coca_2) +
-                "/" + getResources().getResourceEntryName(R.drawable.coca_2));
-        File fileCoca2 = uriToCache(this,uriCoca2,"coca_2");
-        Uri uriCoca3 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(R.drawable.coca_3) +
-                "/" + getResources().getResourceTypeName(R.drawable.coca_3) +
-                "/" + getResources().getResourceEntryName(R.drawable.coca_3));
-        File fileCoca3 = uriToCache(this,uriCoca3,"coca_3");
-        Mat modelCoca1 = imread(fileCoca1.getAbsolutePath());
-        Mat modelCoca2 = imread(fileCoca2.getAbsolutePath());
-        Mat modelCoca3 = imread(fileCoca3.getAbsolutePath());
-        Mat[] referencesCoca = {modelCoca1,modelCoca2,modelCoca3};
-        Mat[] descriptorsReferencesCoca = {new Mat(),new Mat(),new Mat()};
-        KeyPointVector[] keyPointsCoca = {new KeyPointVector(),new KeyPointVector(),new KeyPointVector()};
+        Uri[] uriCoca = new Uri[NUMBER_OF_CLASSES];
+        File[] fileCoca = new File[NUMBER_OF_CLASSES];
+        Mat[] modelCoca = new Mat[NUMBER_OF_CLASSES];
+        Mat[] referencesCoca = new Mat[NUMBER_OF_CLASSES];
+        Mat[] descriptorsReferencesCoca = new Mat[NUMBER_OF_CLASSES];
+        KeyPointVector[] keyPointsCoca = new KeyPointVector[NUMBER_OF_CLASSES];
+
+        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
+            uriCoca[i] = getUriFromDrawable("class_coca_" + i);
+            fileCoca[i] = uriToCache(this,uriCoca[i],"class_coca_" + i);
+            modelCoca[i] = imread(fileCoca[i].getAbsolutePath());
+            referencesCoca[i] = modelCoca[i];
+            descriptorsReferencesCoca[i] = new Mat();
+            keyPointsCoca[i] = new KeyPointVector();
+        }
 
         // Classe Pepsi
-        Uri uriPepsi1 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(R.drawable.pepsi_1) +
-                "/" + getResources().getResourceTypeName(R.drawable.pepsi_1) +
-                "/" + getResources().getResourceEntryName(R.drawable.pepsi_1));
-        File filePepsi1 = uriToCache(this,uriPepsi1,"pepsi_1");
-        Uri uriPepsi2 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(R.drawable.pepsi_2) +
-                "/" + getResources().getResourceTypeName(R.drawable.pepsi_2) +
-                "/" + getResources().getResourceEntryName(R.drawable.pepsi_2));
-        File filePepsi2 = uriToCache(this,uriPepsi2,"pepsi_2");
-        Uri uriPepsi3 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(R.drawable.pepsi_3) +
-                "/" + getResources().getResourceTypeName(R.drawable.pepsi_3) +
-                "/" + getResources().getResourceEntryName(R.drawable.pepsi_3));
-        File filePepsi3 = uriToCache(this,uriPepsi3,"pepsi_3");
-        Mat modelPepsi1 = imread(filePepsi1.getAbsolutePath());
-        Mat modelPepsi2 = imread(filePepsi2.getAbsolutePath());
-        Mat modelPepsi3 = imread(filePepsi3.getAbsolutePath());
-        Mat[] referencesPepsi = {modelPepsi1,modelPepsi2,modelPepsi3};
-        Mat[] descriptorsReferencesPepsi = {new Mat(),new Mat(),new Mat()};
-        KeyPointVector[] keyPointsPepsi = {new KeyPointVector(),new KeyPointVector(),new KeyPointVector()};
+        Uri[] uriPepsi = new Uri[NUMBER_OF_CLASSES];
+        File[] filePepsi = new File[NUMBER_OF_CLASSES];
+        Mat[] modelPepsi = new Mat[NUMBER_OF_CLASSES];
+        Mat[] referencesPepsi = new Mat[NUMBER_OF_CLASSES];
+        Mat[] descriptorsReferencesPepsi = new Mat[NUMBER_OF_CLASSES];
+        KeyPointVector[] keyPointsPepsi = new KeyPointVector[NUMBER_OF_CLASSES];
+
+        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
+            uriPepsi[i] = getUriFromDrawable("class_pepsi_" + i);
+            filePepsi[i] = uriToCache(this,uriPepsi[i],"class_pepsi_" + i);
+            modelPepsi[i] = imread(filePepsi[i].getAbsolutePath());
+            referencesPepsi[i] = modelPepsi[i];
+            descriptorsReferencesPepsi[i] = new Mat();
+            keyPointsPepsi[i] = new KeyPointVector();
+        }
 
         // Classe Sprite
-        Uri uriSprite1 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(R.drawable.sprite_1) +
-                "/" + getResources().getResourceTypeName(R.drawable.sprite_1) +
-                "/" + getResources().getResourceEntryName(R.drawable.sprite_1));
-        File fileSprite1 = uriToCache(this,uriSprite1,"sprite_1");
-        Uri uriSprite2 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(R.drawable.sprite_2) +
-                "/" + getResources().getResourceTypeName(R.drawable.sprite_2) +
-                "/" + getResources().getResourceEntryName(R.drawable.sprite_2));
-        File fileSprite2 = uriToCache(this,uriSprite2,"sprite_2");
-        Uri uriSprite3 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(R.drawable.sprite_3) +
-                "/" + getResources().getResourceTypeName(R.drawable.sprite_3) +
-                "/" + getResources().getResourceEntryName(R.drawable.sprite_3));
-        File fileSprite3 = uriToCache(this,uriSprite3,"sprite_3");
-        Mat modelSprite1 = imread(fileSprite1.getAbsolutePath());
-        Mat modelSprite2 = imread(fileSprite2.getAbsolutePath());
-        Mat modelSprite3 = imread(fileSprite3.getAbsolutePath());
-        Mat[] referencesSprite = {modelSprite1,modelSprite2,modelSprite3};
-        Mat[] descriptorsReferencesSprite = {new Mat(),new Mat(),new Mat()};
-        KeyPointVector[] keyPointsSprite = {new KeyPointVector(),new KeyPointVector(),new KeyPointVector()};
+        Uri[] uriSprite = new Uri[NUMBER_OF_CLASSES];
+        File[] fileSprite = new File[NUMBER_OF_CLASSES];
+        Mat[] modelSprite = new Mat[NUMBER_OF_CLASSES];
+        Mat[] referencesSprite = new Mat[NUMBER_OF_CLASSES];
+        Mat[] descriptorsReferencesSprite = new Mat[NUMBER_OF_CLASSES];
+        KeyPointVector[] keyPointsSprite = new KeyPointVector[NUMBER_OF_CLASSES];
+
+        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
+            uriSprite[i] = getUriFromDrawable("class_sprite_" + i);
+            fileSprite[i] = uriToCache(this,uriSprite[i],"class_sprite_" + i);
+            modelSprite[i] = imread(fileSprite[i].getAbsolutePath());
+            referencesSprite[i] = modelSprite[i];
+            descriptorsReferencesSprite[i] = new Mat();
+            keyPointsSprite[i] = new KeyPointVector();
+        }
 
         // Utilisation de SIFT
         int nFeatures = 0;					// Nombre de meilleures caractéristiques à retenir
@@ -182,9 +161,9 @@ public class AnalysisActivity extends AppCompatActivity {
         DMatchVector matches = new DMatchVector();
 
         // Stockage des distances moyennes pour chaque classe
-        float[] distanceMoyennesCoca = new float[3];
-        float[] distanceMoyennesPepsi = new float[3];
-        float[] distanceMoyennesSprite = new float[3];
+        float[] distanceMoyennesCoca = new float[NUMBER_OF_CLASSES];
+        float[] distanceMoyennesPepsi = new float[NUMBER_OF_CLASSES];
+        float[] distanceMoyennesSprite = new float[NUMBER_OF_CLASSES];
         // Classe Coca
         for (int i = 0; i < referencesCoca.length; i++) {
             matcher.match(descriptorImage, descriptorsReferencesCoca[i], matches);
@@ -216,12 +195,12 @@ public class AnalysisActivity extends AppCompatActivity {
         for (int i=0 ; i<distanceMoyennesSprite.length ; i++) { dictionnary.put("Sprite"+i, distanceMoyennesSprite[i]); }
 
         // Affichage du dictionnaire en console
-        System.out.println("- Contenu du premier dictionnaire contenant toutes les distances moyennes : ");
+        Log.i("foo","- Contenu du premier dictionnaire contenant toutes les distances moyennes : ");
         Set<Entry<String, Float>> setHm = dictionnary.entrySet();
         Iterator<Entry<String, Float>> it = setHm.iterator();
         while(it.hasNext()){
             Entry<String, Float> e = it.next();
-            System.out.println("|" + e.getKey() + " : " + e.getValue());
+            Log.i("foo","|" + e.getKey() + " : " + e.getValue());
         }
 
         // Création d'un nouveau dictionnaire contenant les 3 plus petites distances trouvées
@@ -241,12 +220,12 @@ public class AnalysisActivity extends AppCompatActivity {
         }
 
         // Affichage du nouveau dictionnaire en console
-        System.out.println("- Contenu du dictionnaire final contenant les 3 plus petites distances : ");
+        Log.i("foo","- Contenu du dictionnaire final contenant les 3 plus petites distances : ");
         setHm = minDistances.entrySet();
         it = setHm.iterator();
         while(it.hasNext()){
             Entry<String, Float> e = it.next();
-            System.out.println("|" + e.getKey() + " : " + e.getValue());
+            Log.i("foo","|" + e.getKey() + " : " + e.getValue());
         }
 
         // Décompte par classe
@@ -262,13 +241,27 @@ public class AnalysisActivity extends AppCompatActivity {
             else if (e.getKey().contains("Sprite")) { nbGroupSprite++; }
         }
 
-        if(nbGroupCoca >= nbGroupPepsi && nbGroupCoca >= nbGroupSprite)
-            System.out.println("- La clé \"Coca\" est la plus présente dans le dictionnaire.\n- L'image correspond donc à la classe Coca.");
-        else if(nbGroupPepsi >= nbGroupCoca && nbGroupPepsi >= nbGroupSprite)
-            System.out.println("- La clé \"Pepsi\" est la plus présente dans le dictionnaire.\n- L'image correspond donc à la classe Pepsi.");
-        else if(nbGroupSprite >= nbGroupCoca && nbGroupSprite >= nbGroupPepsi)
-            System.out.println("- La clé \"Sprite\" est la plus présente dans le dictionnaire.\n- L'image correspond donc à la classe Sprite.");
+        if(nbGroupCoca >= nbGroupPepsi && nbGroupCoca >= nbGroupSprite) {
+            imageViewResult.setImageResource(R.drawable.logo_coca);
+            textViewAnalysis.append(" Coca-Cola");
+        }
+        else if(nbGroupPepsi >= nbGroupCoca && nbGroupPepsi >= nbGroupSprite) {
+            imageViewResult.setImageResource(R.drawable.logo_pepsi);
+            textViewAnalysis.append(" Pepsi");
+        }
+        else if(nbGroupSprite >= nbGroupCoca && nbGroupSprite >= nbGroupPepsi) {
+            imageViewResult.setImageResource(R.drawable.logo_sprite);
+            textViewAnalysis.append(" Sprite");
+        }
+    }
 
+    private Uri getUriFromDrawable(String drawableName) {
+        int id = getResources().getIdentifier(drawableName, "drawable", getPackageName());
+        Uri uri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
+                "://" + getResources().getResourcePackageName(id) +
+                "/" + getResources().getResourceTypeName(id) +
+                "/" + getResources().getResourceEntryName(id));
+        return uri;
     }
 
     /**
