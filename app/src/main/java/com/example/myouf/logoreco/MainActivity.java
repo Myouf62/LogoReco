@@ -9,6 +9,8 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
@@ -26,6 +28,7 @@ import android.widget.Toast;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import static android.R.attr.data;
 
@@ -106,12 +109,62 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onActivityResult(int requestCode, int resultCode, Intent intent){
         if (requestCode==PHOTO_LIB_REQUEST && resultCode==RESULT_OK){
             selectedImageUri = intent.getData();
-            setImageViewContent(selectedImageUri);
+            setImageViewContentFromLibrary(selectedImageUri);
         }
 
         if (requestCode==CAMERA_REQUEST && resultCode==RESULT_OK){
             selectedImageUri = intent.getData();
-            setImageViewContent(selectedImageUri);
+            setImageViewContentFromCamera(selectedImageUri);
+        }
+    }
+
+    /**
+     * This function set the imageView with the picture taken directly with the camera
+     * @param selectedImageUri
+     */
+    public void setImageViewContentFromCamera(Uri selectedImageUri){
+        if (checkPermissionREAD_EXTERNAL_STORAGE(this)) {
+            try {
+                String[] orientationColumn = {MediaStore.Images.Media.ORIENTATION};
+                Cursor cur = getContentResolver().query(selectedImageUri, orientationColumn, null, null, null);
+                int orientation = -1;
+                if (cur != null && cur.moveToFirst()) {
+                    orientation = cur.getInt(cur.getColumnIndex(orientationColumn[0]));
+                }
+                Matrix matrix = new Matrix();
+                matrix.postRotate(orientation);
+                Bitmap sourceBitmap = BitmapFactory.decodeStream(this.getContentResolver().openInputStream(selectedImageUri), null, null);
+                ExifInterface exif = new ExifInterface(selectedImageUri.getPath());
+                int rotation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+                Bitmap adjustedBitmap = Bitmap.createBitmap(sourceBitmap, 0, 0, sourceBitmap.getWidth(), sourceBitmap.getHeight(), matrix, true);
+                imageViewBase.setImageBitmap(adjustedBitmap);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * This function set the imageView with the picture selected in the gallery
+     * @param selectedImageUri
+     */
+    public void setImageViewContentFromLibrary(Uri selectedImageUri){
+        try {
+            int rotation=0;
+            Bitmap sourceBitmap = BitmapFactory.decodeStream(this.getContentResolver().openInputStream(selectedImageUri), null, null);
+            Matrix matrix = new Matrix();
+            if (sourceBitmap.getHeight() < sourceBitmap.getWidth()){
+                rotation=90;
+            }
+            matrix.preRotate(rotation);
+            Bitmap adjustedBitmap = Bitmap.createBitmap(sourceBitmap, 0, 0, sourceBitmap.getWidth(), sourceBitmap.getHeight(), matrix, true);
+            imageViewBase.setImageBitmap(adjustedBitmap);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -202,4 +255,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         grantResults);
         }
     }
+
+
 }
