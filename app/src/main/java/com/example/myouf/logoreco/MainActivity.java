@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button libraryButton;
     Button analysisButton;
     ImageView imageViewBase;
+    Uri selectedImageUri;
 
     //Declaration des constantes code de retour des requetes intent
     private static final int PHOTO_LIB_REQUEST = 1;
@@ -85,7 +86,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     protected void startAnalysisActivity(){
         Intent intent = new Intent(this, AnalysisActivity.class);
-        startActivity(intent);
+        if (selectedImageUri != null) {
+            intent.putExtra("selectedImageUri", selectedImageUri);
+            startActivity(intent);
+        }
+        else {
+            Toast toast = Toast.makeText(this, "You have to choose a picture", Toast.LENGTH_SHORT);
+            toast.show();
+        }
     }
 
     protected void startPhotoLibraryActivity(){
@@ -97,12 +105,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     protected void onActivityResult(int requestCode, int resultCode, Intent intent){
         if (requestCode==PHOTO_LIB_REQUEST && resultCode==RESULT_OK){
-            Uri selectedImageUri = intent.getData();
+            selectedImageUri = intent.getData();
             setImageViewContent(selectedImageUri);
         }
 
         if (requestCode==CAMERA_REQUEST && resultCode==RESULT_OK){
-            Uri selectedImageUri = intent.getData();
+            selectedImageUri = intent.getData();
             setImageViewContent(selectedImageUri);
         }
     }

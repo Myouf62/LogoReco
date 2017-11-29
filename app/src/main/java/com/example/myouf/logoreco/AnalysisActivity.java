@@ -48,6 +48,7 @@ import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 public class AnalysisActivity extends AppCompatActivity {
 
     ImageView imageViewResult;
+    Uri selectedImageUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +59,8 @@ public class AnalysisActivity extends AppCompatActivity {
         // En guise de test, nous utilisons pour le moment l'image base de Coca utilisée dans le TP4
         imageViewResult.setImageResource(R.drawable.coca_image_base);
 
+        selectedImageUri = getIntent().getParcelableExtra("selectedImageUri");
+
         testOfAdaptedTP4();
     }
 
@@ -66,13 +69,7 @@ public class AnalysisActivity extends AppCompatActivity {
         // Il est possible de remplacer "\\cocaImageBase.jpg" par "\\spriteImageBase.jpg"
         //String pathImage = "drawable://" + R.drawable.coca_image_base;
         //Uri path = Uri.parse("android.resource://res/drawable/drawable.coca_image");
-        Uri path = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(R.drawable.coca_image_base) +
-                "/" + getResources().getResourceTypeName(R.drawable.coca_image_base) +
-                "/" + getResources().getResourceEntryName(R.drawable.coca_image_base));
-        String pathImage = path.getPath();
-        File file = galleryToCache(this,path,"imageToTreat");
-        Log.i("foo", "path_image = " + pathImage);
+        File file = uriToCache(this,selectedImageUri,"imageToTreat");
         //Mat image = imread(getResources().getDrawable(R.drawable.coca_image_base,null).toString());
 
         Mat image = imread(file.getAbsolutePath());
@@ -86,17 +83,17 @@ public class AnalysisActivity extends AppCompatActivity {
                 "://" + getResources().getResourcePackageName(R.drawable.coca_1) +
                 "/" + getResources().getResourceTypeName(R.drawable.coca_1) +
                 "/" + getResources().getResourceEntryName(R.drawable.coca_1));
-        File fileCoca1 = galleryToCache(this,uriCoca1,"coca_1");
+        File fileCoca1 = uriToCache(this,uriCoca1,"coca_1");
         Uri uriCoca2 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
                 "://" + getResources().getResourcePackageName(R.drawable.coca_2) +
                 "/" + getResources().getResourceTypeName(R.drawable.coca_2) +
                 "/" + getResources().getResourceEntryName(R.drawable.coca_2));
-        File fileCoca2 = galleryToCache(this,uriCoca2,"coca_2");
+        File fileCoca2 = uriToCache(this,uriCoca2,"coca_2");
         Uri uriCoca3 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
                 "://" + getResources().getResourcePackageName(R.drawable.coca_3) +
                 "/" + getResources().getResourceTypeName(R.drawable.coca_3) +
                 "/" + getResources().getResourceEntryName(R.drawable.coca_3));
-        File fileCoca3 = galleryToCache(this,uriCoca3,"coca_3");
+        File fileCoca3 = uriToCache(this,uriCoca3,"coca_3");
         Mat modelCoca1 = imread(fileCoca1.getAbsolutePath());
         Mat modelCoca2 = imread(fileCoca2.getAbsolutePath());
         Mat modelCoca3 = imread(fileCoca3.getAbsolutePath());
@@ -109,17 +106,17 @@ public class AnalysisActivity extends AppCompatActivity {
                 "://" + getResources().getResourcePackageName(R.drawable.pepsi_1) +
                 "/" + getResources().getResourceTypeName(R.drawable.pepsi_1) +
                 "/" + getResources().getResourceEntryName(R.drawable.pepsi_1));
-        File filePepsi1 = galleryToCache(this,uriPepsi1,"pepsi_1");
+        File filePepsi1 = uriToCache(this,uriPepsi1,"pepsi_1");
         Uri uriPepsi2 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
                 "://" + getResources().getResourcePackageName(R.drawable.pepsi_2) +
                 "/" + getResources().getResourceTypeName(R.drawable.pepsi_2) +
                 "/" + getResources().getResourceEntryName(R.drawable.pepsi_2));
-        File filePepsi2 = galleryToCache(this,uriPepsi2,"pepsi_2");
+        File filePepsi2 = uriToCache(this,uriPepsi2,"pepsi_2");
         Uri uriPepsi3 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
                 "://" + getResources().getResourcePackageName(R.drawable.pepsi_3) +
                 "/" + getResources().getResourceTypeName(R.drawable.pepsi_3) +
                 "/" + getResources().getResourceEntryName(R.drawable.pepsi_3));
-        File filePepsi3 = galleryToCache(this,uriPepsi3,"pepsi_3");
+        File filePepsi3 = uriToCache(this,uriPepsi3,"pepsi_3");
         Mat modelPepsi1 = imread(filePepsi1.getAbsolutePath());
         Mat modelPepsi2 = imread(filePepsi2.getAbsolutePath());
         Mat modelPepsi3 = imread(filePepsi3.getAbsolutePath());
@@ -132,17 +129,17 @@ public class AnalysisActivity extends AppCompatActivity {
                 "://" + getResources().getResourcePackageName(R.drawable.sprite_1) +
                 "/" + getResources().getResourceTypeName(R.drawable.sprite_1) +
                 "/" + getResources().getResourceEntryName(R.drawable.sprite_1));
-        File fileSprite1 = galleryToCache(this,uriSprite1,"sprite_1");
+        File fileSprite1 = uriToCache(this,uriSprite1,"sprite_1");
         Uri uriSprite2 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
                 "://" + getResources().getResourcePackageName(R.drawable.sprite_2) +
                 "/" + getResources().getResourceTypeName(R.drawable.sprite_2) +
                 "/" + getResources().getResourceEntryName(R.drawable.sprite_2));
-        File fileSprite2 = galleryToCache(this,uriSprite2,"sprite_2");
+        File fileSprite2 = uriToCache(this,uriSprite2,"sprite_2");
         Uri uriSprite3 = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
                 "://" + getResources().getResourcePackageName(R.drawable.sprite_3) +
                 "/" + getResources().getResourceTypeName(R.drawable.sprite_3) +
                 "/" + getResources().getResourceEntryName(R.drawable.sprite_3));
-        File fileSprite3 = galleryToCache(this,uriSprite3,"sprite_3");
+        File fileSprite3 = uriToCache(this,uriSprite3,"sprite_3");
         Mat modelSprite1 = imread(fileSprite1.getAbsolutePath());
         Mat modelSprite2 = imread(fileSprite2.getAbsolutePath());
         Mat modelSprite3 = imread(fileSprite3.getAbsolutePath());
@@ -282,7 +279,7 @@ public class AnalysisActivity extends AppCompatActivity {
      * @param fileName nom du fichier de destination.
      * @return fichier copié dans le cache de l'application.
      */
-    public static File galleryToCache(Context context, Uri imgPath, String fileName) {
+    public static File uriToCache(Context context, Uri imgPath, String fileName) {
         InputStream is;
         FileOutputStream fos;
         int size;
