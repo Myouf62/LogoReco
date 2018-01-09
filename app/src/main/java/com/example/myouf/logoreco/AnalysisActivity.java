@@ -2,6 +2,7 @@ package com.example.myouf.logoreco;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -21,6 +22,16 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+
+import static com.example.myouf.logoreco.MainActivity.NUMBER_OF_CLASSES;
+import static com.example.myouf.logoreco.MainActivity.descriptorsReferencesCoca;
+import static com.example.myouf.logoreco.MainActivity.descriptorsReferencesPepsi;
+import static com.example.myouf.logoreco.MainActivity.descriptorsReferencesSprite;
+import static com.example.myouf.logoreco.MainActivity.referencesCoca;
+import static com.example.myouf.logoreco.MainActivity.referencesPepsi;
+import static com.example.myouf.logoreco.MainActivity.referencesSprite;
+import static com.example.myouf.logoreco.MainActivity.sift;
+import static com.example.myouf.logoreco.MainActivity.uriToCache;
 import static org.bytedeco.javacpp.opencv_core.NORM_L2;
 import static org.bytedeco.javacpp.opencv_features2d.drawKeypoints;
 import static org.bytedeco.javacpp.opencv_features2d.drawMatches;
@@ -49,7 +60,6 @@ import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 
 public class AnalysisActivity extends AppCompatActivity {
 
-    final int NUMBER_OF_CLASSES = 3;
     ImageView imageViewResult;
     TextView textViewAnalysis;
     Uri selectedImageUri;
@@ -61,7 +71,9 @@ public class AnalysisActivity extends AppCompatActivity {
 
         imageViewResult = (ImageView) findViewById(R.id.imageViewResult);
         textViewAnalysis = (TextView) findViewById(R.id.textViewAnalysis);
-        selectedImageUri = getIntent().getParcelableExtra("selectedImageUri");
+
+        Intent i = getIntent();
+        selectedImageUri = i.getParcelableExtra("selectedImageUri");
 
         testOfAdaptedTP4();
     }
@@ -74,87 +86,9 @@ public class AnalysisActivity extends AppCompatActivity {
         Mat descriptorImage = new Mat();
         KeyPointVector keyPointsImage = new KeyPointVector();
 
-        // Lecture des images par classe
-        // Classe Coca
-        Uri[] uriCoca = new Uri[NUMBER_OF_CLASSES];
-        File[] fileCoca = new File[NUMBER_OF_CLASSES];
-        Mat[] modelCoca = new Mat[NUMBER_OF_CLASSES];
-        Mat[] referencesCoca = new Mat[NUMBER_OF_CLASSES];
-        Mat[] descriptorsReferencesCoca = new Mat[NUMBER_OF_CLASSES];
-        KeyPointVector[] keyPointsCoca = new KeyPointVector[NUMBER_OF_CLASSES];
-
-        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
-            uriCoca[i] = getUriFromDrawable("class_coca_" + i);
-            fileCoca[i] = uriToCache(this,uriCoca[i],"class_coca_" + i);
-            modelCoca[i] = imread(fileCoca[i].getAbsolutePath());
-            referencesCoca[i] = modelCoca[i];
-            descriptorsReferencesCoca[i] = new Mat();
-            keyPointsCoca[i] = new KeyPointVector();
-        }
-
-        // Classe Pepsi
-        Uri[] uriPepsi = new Uri[NUMBER_OF_CLASSES];
-        File[] filePepsi = new File[NUMBER_OF_CLASSES];
-        Mat[] modelPepsi = new Mat[NUMBER_OF_CLASSES];
-        Mat[] referencesPepsi = new Mat[NUMBER_OF_CLASSES];
-        Mat[] descriptorsReferencesPepsi = new Mat[NUMBER_OF_CLASSES];
-        KeyPointVector[] keyPointsPepsi = new KeyPointVector[NUMBER_OF_CLASSES];
-
-        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
-            uriPepsi[i] = getUriFromDrawable("class_pepsi_" + i);
-            filePepsi[i] = uriToCache(this,uriPepsi[i],"class_pepsi_" + i);
-            modelPepsi[i] = imread(filePepsi[i].getAbsolutePath());
-            referencesPepsi[i] = modelPepsi[i];
-            descriptorsReferencesPepsi[i] = new Mat();
-            keyPointsPepsi[i] = new KeyPointVector();
-        }
-
-        // Classe Sprite
-        Uri[] uriSprite = new Uri[NUMBER_OF_CLASSES];
-        File[] fileSprite = new File[NUMBER_OF_CLASSES];
-        Mat[] modelSprite = new Mat[NUMBER_OF_CLASSES];
-        Mat[] referencesSprite = new Mat[NUMBER_OF_CLASSES];
-        Mat[] descriptorsReferencesSprite = new Mat[NUMBER_OF_CLASSES];
-        KeyPointVector[] keyPointsSprite = new KeyPointVector[NUMBER_OF_CLASSES];
-
-        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
-            uriSprite[i] = getUriFromDrawable("class_sprite_" + i);
-            fileSprite[i] = uriToCache(this,uriSprite[i],"class_sprite_" + i);
-            modelSprite[i] = imread(fileSprite[i].getAbsolutePath());
-            referencesSprite[i] = modelSprite[i];
-            descriptorsReferencesSprite[i] = new Mat();
-            keyPointsSprite[i] = new KeyPointVector();
-        }
-
-        // Utilisation de SIFT
-        int nFeatures = 0;					// Nombre de meilleures caractéristiques à retenir
-        int nOctaveLayers = 3;				// Nombre de couches dans chaque octave
-        double contrastThreshold = 0.03;	// Seuil de contraste utilisé pour filtrer les caractéristiques faibles en régions semi-uniformes
-        int edgeThreshold = 10;				// Seuil utilisé pour filtrer les caractéristiques de pointe
-        double sigma = 1.6;					// Sigma de la gaussienne appliquée à l'image d'entrée à l'octave
-
-        Loader.load(opencv_calib3d.class);
-        Loader.load(opencv_shape.class);
-        SIFT sift;
-        sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
-
         // Détection de l'image de base à comparer
         sift.detect(image, keyPointsImage);
         sift.compute(image, keyPointsImage, descriptorImage);
-
-        // Détection des autres images classées
-        for (int i = 0; i < referencesCoca.length; i++) {
-            sift.detect(referencesCoca[i], keyPointsCoca[i]);
-            sift.compute(referencesCoca[i], keyPointsCoca[i], descriptorsReferencesCoca[i]);
-        }
-        for (int i = 0; i < referencesPepsi.length; i++) {
-            sift.detect(referencesPepsi[i], keyPointsPepsi[i]);
-            sift.compute(referencesPepsi[i], keyPointsPepsi[i], descriptorsReferencesPepsi[i]);
-        }
-        for (int i = 0; i < referencesSprite.length; i++) {
-            sift.detect(referencesSprite[i], keyPointsSprite[i]);
-            sift.compute(referencesSprite[i], keyPointsSprite[i], descriptorsReferencesSprite[i]);
-        }
 
         // Création du matcher
         BFMatcher matcher = new BFMatcher(NORM_L2, false);
@@ -252,57 +186,6 @@ public class AnalysisActivity extends AppCompatActivity {
         else if(nbGroupSprite >= nbGroupCoca && nbGroupSprite >= nbGroupPepsi) {
             imageViewResult.setImageResource(R.drawable.logo_sprite);
             textViewAnalysis.append(" Sprite");
-        }
-    }
-
-    private Uri getUriFromDrawable(String drawableName) {
-        int id = getResources().getIdentifier(drawableName, "drawable", getPackageName());
-        Uri uri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(id) +
-                "/" + getResources().getResourceTypeName(id) +
-                "/" + getResources().getResourceEntryName(id));
-        return uri;
-    }
-
-    /**
-     * Copie un fichier de la galerie vers le cache de l'application.
-     *
-     * @param context contexte de l'application pour récupérer le dossier de cache.
-     * @param imgPath chemin sous forme d'Uri vers l'image dans la galerie.
-     * @param fileName nom du fichier de destination.
-     * @return fichier copié dans le cache de l'application.
-     */
-    public static File uriToCache(Context context, Uri imgPath, String fileName) {
-        InputStream is;
-        FileOutputStream fos;
-        int size;
-        byte[] buffer;
-        String filePath = context.getCacheDir() + "/" + fileName;
-        File file = new File(filePath);
-
-        try {
-            is = context.getContentResolver().openInputStream(imgPath);
-            if (is == null) {
-                return null;
-            }
-
-            size = is.available();
-            buffer = new byte[size];
-
-            if (is.read(buffer) <= 0) {
-                return null;
-            }
-
-            is.close();
-
-            fos = new FileOutputStream(filePath);
-            fos.write(buffer);
-            fos.close();
-
-            return file;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
         }
     }
 

@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.ContentResolver;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -25,14 +26,27 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import org.bytedeco.javacpp.opencv_core;
+import org.bytedeco.javacpp.opencv_core.Mat;
+import org.bytedeco.javacpp.opencv_core.KeyPointVector;
+import org.bytedeco.javacpp.Loader;
+import org.bytedeco.javacpp.opencv_calib3d;
+import org.bytedeco.javacpp.opencv_shape;
+import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
+
+import static org.bytedeco.javacpp.opencv_imgcodecs.imread;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.Serializable;
 
 import static android.R.attr.data;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, Serializable {
 
     final String TAG=MainActivity.class.getName();
     String pathToPhoto;
@@ -48,11 +62,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final int CAMERA_REQUEST = 2;
     public static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
 
+    //Constante representant le nombre de classes utilisees
+    public static final int NUMBER_OF_CLASSES = 3;
+
+    public static Mat[] referencesCoca;
+    public static Mat[] descriptorsReferencesCoca;
+    public static Mat[] referencesPepsi;
+    public static Mat[] descriptorsReferencesPepsi;
+    public static Mat[] referencesSprite;
+    public static Mat[] descriptorsReferencesSprite;
+
+    public static SIFT sift;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        treatmentForClassImages();
 
         captureButton = (Button) findViewById(R.id.captureButton);
         captureButton.setOnClickListener(this);
@@ -85,6 +112,136 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
 
+    }
+
+    private void treatmentForClassImages() {
+        // Lecture des images par classe
+        // Classe Coca
+        Uri[] uriCoca = new Uri[NUMBER_OF_CLASSES];
+        File[] fileCoca = new File[NUMBER_OF_CLASSES];
+        Mat[] modelCoca = new Mat[NUMBER_OF_CLASSES];
+        referencesCoca = new Mat[NUMBER_OF_CLASSES];
+        descriptorsReferencesCoca = new Mat[NUMBER_OF_CLASSES];
+        KeyPointVector[] keyPointsCoca = new KeyPointVector[NUMBER_OF_CLASSES];
+
+        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
+            uriCoca[i] = getUriFromDrawable("class_coca_" + i);
+            fileCoca[i] = uriToCache(this,uriCoca[i],"class_coca_" + i);
+            modelCoca[i] = imread(fileCoca[i].getAbsolutePath());
+            referencesCoca[i] = modelCoca[i];
+            descriptorsReferencesCoca[i] = new Mat();
+            keyPointsCoca[i] = new KeyPointVector();
+        }
+
+        // Classe Pepsi
+        Uri[] uriPepsi = new Uri[NUMBER_OF_CLASSES];
+        File[] filePepsi = new File[NUMBER_OF_CLASSES];
+        Mat[] modelPepsi = new Mat[NUMBER_OF_CLASSES];
+        referencesPepsi = new Mat[NUMBER_OF_CLASSES];
+        descriptorsReferencesPepsi = new Mat[NUMBER_OF_CLASSES];
+        KeyPointVector[] keyPointsPepsi = new KeyPointVector[NUMBER_OF_CLASSES];
+
+        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
+            uriPepsi[i] = getUriFromDrawable("class_pepsi_" + i);
+            filePepsi[i] = uriToCache(this,uriPepsi[i],"class_pepsi_" + i);
+            modelPepsi[i] = imread(filePepsi[i].getAbsolutePath());
+            referencesPepsi[i] = modelPepsi[i];
+            descriptorsReferencesPepsi[i] = new Mat();
+            keyPointsPepsi[i] = new KeyPointVector();
+        }
+
+        // Classe Sprite
+        Uri[] uriSprite = new Uri[NUMBER_OF_CLASSES];
+        File[] fileSprite = new File[NUMBER_OF_CLASSES];
+        Mat[] modelSprite = new Mat[NUMBER_OF_CLASSES];
+        referencesSprite = new Mat[NUMBER_OF_CLASSES];
+        descriptorsReferencesSprite = new Mat[NUMBER_OF_CLASSES];
+        KeyPointVector[] keyPointsSprite = new KeyPointVector[NUMBER_OF_CLASSES];
+
+        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
+            uriSprite[i] = getUriFromDrawable("class_sprite_" + i);
+            fileSprite[i] = uriToCache(this,uriSprite[i],"class_sprite_" + i);
+            modelSprite[i] = imread(fileSprite[i].getAbsolutePath());
+            referencesSprite[i] = modelSprite[i];
+            descriptorsReferencesSprite[i] = new Mat();
+            keyPointsSprite[i] = new KeyPointVector();
+        }
+
+        // Utilisation de SIFT
+        int nFeatures = 0;					// Nombre de meilleures caractéristiques à retenir
+        int nOctaveLayers = 3;				// Nombre de couches dans chaque octave
+        double contrastThreshold = 0.03;	// Seuil de contraste utilisé pour filtrer les caractéristiques faibles en régions semi-uniformes
+        int edgeThreshold = 10;				// Seuil utilisé pour filtrer les caractéristiques de pointe
+        double sigma = 1.6;					// Sigma de la gaussienne appliquée à l'image d'entrée à l'octave
+
+        Loader.load(opencv_calib3d.class);
+        Loader.load(opencv_shape.class);
+        sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+
+        // Détection des images de classe
+        for (int i = 0; i < referencesCoca.length; i++) {
+            sift.detect(referencesCoca[i], keyPointsCoca[i]);
+            sift.compute(referencesCoca[i], keyPointsCoca[i], descriptorsReferencesCoca[i]);
+        }
+        for (int i = 0; i < referencesPepsi.length; i++) {
+            sift.detect(referencesPepsi[i], keyPointsPepsi[i]);
+            sift.compute(referencesPepsi[i], keyPointsPepsi[i], descriptorsReferencesPepsi[i]);
+        }
+        for (int i = 0; i < referencesSprite.length; i++) {
+            sift.detect(referencesSprite[i], keyPointsSprite[i]);
+            sift.compute(referencesSprite[i], keyPointsSprite[i], descriptorsReferencesSprite[i]);
+        }
+    }
+
+    private Uri getUriFromDrawable(String drawableName) {
+        int id = getResources().getIdentifier(drawableName, "drawable", getPackageName());
+        Uri uri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
+                "://" + getResources().getResourcePackageName(id) +
+                "/" + getResources().getResourceTypeName(id) +
+                "/" + getResources().getResourceEntryName(id));
+        return uri;
+    }
+
+    /**
+     * Copie un fichier de la galerie vers le cache de l'application.
+     *
+     * @param context contexte de l'application pour récupérer le dossier de cache.
+     * @param imgPath chemin sous forme d'Uri vers l'image dans la galerie.
+     * @param fileName nom du fichier de destination.
+     * @return fichier copié dans le cache de l'application.
+     */
+    public static File uriToCache(Context context, Uri imgPath, String fileName) {
+        InputStream is;
+        FileOutputStream fos;
+        int size;
+        byte[] buffer;
+        String filePath = context.getCacheDir() + "/" + fileName;
+        File file = new File(filePath);
+
+        try {
+            is = context.getContentResolver().openInputStream(imgPath);
+            if (is == null) {
+                return null;
+            }
+
+            size = is.available();
+            buffer = new byte[size];
+
+            if (is.read(buffer) <= 0) {
+                return null;
+            }
+
+            is.close();
+
+            fos = new FileOutputStream(filePath);
+            fos.write(buffer);
+            fos.close();
+
+            return file;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     protected void startAnalysisActivity(){
