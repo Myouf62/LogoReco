@@ -7,6 +7,9 @@ import android.net.Uri;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.Spanned;
+import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -63,6 +66,7 @@ public class AnalysisActivity extends AppCompatActivity {
     ImageView imageViewResult;
     TextView textViewAnalysis;
     Uri selectedImageUri;
+    Spanned resultText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,14 +75,19 @@ public class AnalysisActivity extends AppCompatActivity {
 
         imageViewResult = (ImageView) findViewById(R.id.imageViewResult);
         textViewAnalysis = (TextView) findViewById(R.id.textViewAnalysis);
+        // Make links clickable
+        textViewAnalysis.setMovementMethod(LinkMovementMethod.getInstance());
 
         Intent i = getIntent();
         selectedImageUri = i.getParcelableExtra("selectedImageUri");
 
-        testOfAdaptedTP4();
+        startAnalysis();
     }
 
-    private void testOfAdaptedTP4() {
+    /**
+     * Analysis between the class images and the chosen picture
+     */
+    private void startAnalysis() {
         File file = uriToCache(this,selectedImageUri,"imageToTreat");
 
         Mat image = imread(file.getAbsolutePath());
@@ -86,33 +95,36 @@ public class AnalysisActivity extends AppCompatActivity {
         Mat descriptorImage = new Mat();
         KeyPointVector keyPointsImage = new KeyPointVector();
 
-        // Détection de l'image de base à comparer
+        // Detecting chosen picture
         sift.detect(image, keyPointsImage);
         sift.compute(image, keyPointsImage, descriptorImage);
 
-        // Création du matcher
+        // Creating a matcher
         BFMatcher matcher = new BFMatcher(NORM_L2, false);
         DMatchVector matches = new DMatchVector();
 
-        // Stockage des distances moyennes pour chaque classe
+        // Storage of average distances for each class
         float[] distanceMoyennesCoca = new float[NUMBER_OF_CLASSES];
         float[] distanceMoyennesPepsi = new float[NUMBER_OF_CLASSES];
         float[] distanceMoyennesSprite = new float[NUMBER_OF_CLASSES];
-        // Classe Coca
+
+        // Coca-Cola class
         for (int i = 0; i < referencesCoca.length; i++) {
             matcher.match(descriptorImage, descriptorsReferencesCoca[i], matches);
             DMatchVector bestMatches = selectBest(matches,25);
             float distanceMoyenne = calculateAverageDistance(bestMatches);
             distanceMoyennesCoca[i] = distanceMoyenne;
         }
-        // Classe Pepsi
+
+        // Pepsi class
         for (int i = 0; i < referencesPepsi.length; i++) {
             matcher.match(descriptorImage, descriptorsReferencesPepsi[i], matches);
             DMatchVector bestMatches = selectBest(matches,25);
             float distanceMoyenne = calculateAverageDistance(bestMatches);
             distanceMoyennesPepsi[i] = distanceMoyenne;
         }
-        // Classe Sprite
+
+        // Sprite class
         for (int i = 0; i < referencesSprite.length; i++) {
             matcher.match(descriptorImage, descriptorsReferencesSprite[i], matches);
             DMatchVector bestMatches = selectBest(matches,25);
@@ -120,15 +132,15 @@ public class AnalysisActivity extends AppCompatActivity {
             distanceMoyennesSprite[i] = distanceMoyenne;
         }
 
-        // Création d'un dictionnaire
-        // Clés => noms des boissons
-        // Valeurs => distances moyennes
+        // Creating a dictionary
+        // Keys => drinks names
+        // Values => average distances
         Map<String, Float> dictionnary = new HashMap<>();
-        for (int i=0 ; i<distanceMoyennesCoca.length ; i++) { dictionnary.put("Coca"+i, distanceMoyennesCoca[i]); }
-        for (int i=0 ; i<distanceMoyennesPepsi.length ; i++) { dictionnary.put("Pepsi"+i, distanceMoyennesPepsi[i]); }
-        for (int i=0 ; i<distanceMoyennesSprite.length ; i++) { dictionnary.put("Sprite"+i, distanceMoyennesSprite[i]); }
+        for (int i = 0 ; i < distanceMoyennesCoca.length ; i++) { dictionnary.put("Coca" + i, distanceMoyennesCoca[i]); }
+        for (int i = 0 ; i < distanceMoyennesPepsi.length ; i++) { dictionnary.put("Pepsi" + i, distanceMoyennesPepsi[i]); }
+        for (int i = 0 ; i < distanceMoyennesSprite.length ; i++) { dictionnary.put("Sprite" + i, distanceMoyennesSprite[i]); }
 
-        // Affichage du dictionnaire en console
+        // Displaying the dictionary in console
         Log.i("foo","- Contenu du premier dictionnaire contenant toutes les distances moyennes : ");
         Set<Entry<String, Float>> setHm = dictionnary.entrySet();
         Iterator<Entry<String, Float>> it = setHm.iterator();
@@ -137,23 +149,23 @@ public class AnalysisActivity extends AppCompatActivity {
             Log.i("foo","|" + e.getKey() + " : " + e.getValue());
         }
 
-        // Création d'un nouveau dictionnaire contenant les 3 plus petites distances trouvées
+        // Creation of a new dictionary containing the 3 smallest distances found
         Map<String, Float> minDistances = new HashMap<>();
         Entry<String, Float> min;
-        for (int i=0 ; i<3 ; i++) {
+        for (int i = 0 ; i < 3 ; i++) {
             min = null;
             for (Entry<String, Float> entry : dictionnary.entrySet()) {
                 if (min == null || min.getValue() > entry.getValue()) {
                     min = entry;
                 }
             }
-            // Ajout dans le nouveau dictionnaire
+            // Adding in the new dictionary
             minDistances.put(min.getKey(), min.getValue());
-            // Suppression dans l'ancien dictionnaire
+            // Removing in the old dictionary
             dictionnary.remove(min.getKey());
         }
 
-        // Affichage du nouveau dictionnaire en console
+        // Displaying the new dictionary in console
         Log.i("foo","- Contenu du dictionnaire final contenant les 3 plus petites distances : ");
         setHm = minDistances.entrySet();
         it = setHm.iterator();
@@ -162,7 +174,7 @@ public class AnalysisActivity extends AppCompatActivity {
             Log.i("foo","|" + e.getKey() + " : " + e.getValue());
         }
 
-        // Décompte par classe
+        // Count by class
         int nbGroupCoca = 0;
         int nbGroupPepsi = 0;
         int nbGroupSprite = 0;
@@ -175,23 +187,27 @@ public class AnalysisActivity extends AppCompatActivity {
             else if (e.getKey().contains("Sprite")) { nbGroupSprite++; }
         }
 
+        // Final conditions
         if(nbGroupCoca >= nbGroupPepsi && nbGroupCoca >= nbGroupSprite) {
             imageViewResult.setImageResource(R.drawable.logo_coca);
-            textViewAnalysis.append(" Coca-Cola");
+            resultText = Html.fromHtml("<a href='https://www.cocacola.fr/accueil/'>Coca-Cola</a>");
+            textViewAnalysis.append(resultText);
         }
         else if(nbGroupPepsi >= nbGroupCoca && nbGroupPepsi >= nbGroupSprite) {
             imageViewResult.setImageResource(R.drawable.logo_pepsi);
-            textViewAnalysis.append(" Pepsi");
+            resultText = Html.fromHtml("<a href='https://www.pepsi.com/en-us/'>Pepsi</a>");
+            textViewAnalysis.append(resultText);
         }
         else if(nbGroupSprite >= nbGroupCoca && nbGroupSprite >= nbGroupPepsi) {
             imageViewResult.setImageResource(R.drawable.logo_sprite);
-            textViewAnalysis.append(" Sprite");
+            resultText = Html.fromHtml("<a href='https://www.sprite.tm.fr/fr/home/'>Sprite</a>");
+            textViewAnalysis.append(resultText);
         }
     }
 
     static float calculateAverageDistance(DMatchVector bestMatches) {
         float Dm = 0;
-        for(int i=0 ; i<bestMatches.size() ; i++) {
+        for(int i = 0 ; i < bestMatches.size() ; i++) {
             Dm = Dm + bestMatches.get(i).distance();
         }
         Dm = Dm/bestMatches.size();
@@ -199,7 +215,7 @@ public class AnalysisActivity extends AppCompatActivity {
     }
 
     /**
-     * Sélectionner les meilleurs points matchés entre deux images
+     * Select the best matched points between two images
      * @param matches
      * @param numberToSelect
      * @return

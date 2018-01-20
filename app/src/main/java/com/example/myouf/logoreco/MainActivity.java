@@ -2,6 +2,7 @@ package com.example.myouf.logoreco;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -34,6 +35,7 @@ import org.bytedeco.javacpp.opencv_calib3d;
 import org.bytedeco.javacpp.opencv_shape;
 import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 
+import static android.R.attr.progress;
 import static org.bytedeco.javacpp.opencv_imgcodecs.imread;
 
 import java.io.File;
@@ -46,9 +48,13 @@ import java.io.Serializable;
 
 import static android.R.attr.data;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, Serializable {
+/**
+ * Main activity launched when the application starts
+ */
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    final String TAG=MainActivity.class.getName();
+    final String TAG = MainActivity.class.getName();
+
     String pathToPhoto;
     Bitmap photoBitmap;
     Button captureButton;
@@ -57,29 +63,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     ImageView imageViewBase;
     Uri selectedImageUri;
 
-    //Declaration des constantes code de retour des requetes intent
+    // Return codes for intent queries
     private static final int PHOTO_LIB_REQUEST = 1;
     private static final int CAMERA_REQUEST = 2;
     public static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
 
-    //Constante representant le nombre de classes utilisees
+    // Constant representing the number of classes used
     public static final int NUMBER_OF_CLASSES = 3;
 
+    // Variables specific to image processing
     public static Mat[] referencesCoca;
     public static Mat[] descriptorsReferencesCoca;
     public static Mat[] referencesPepsi;
     public static Mat[] descriptorsReferencesPepsi;
     public static Mat[] referencesSprite;
     public static Mat[] descriptorsReferencesSprite;
-
     public static SIFT sift;
+
+    // Progress dialog used during the treatment of class images
+    ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        treatmentForClassImages();
+        // Show the progress dialog
+        progressDialog = ProgressDialog.show(this, "Please wait", "Initial processing of class images is in progress...", true);
+
+        // Run the treatment of class images in another thread
+        new Thread((new Runnable() {
+            @Override
+            public void run() {
+                classImagesInitialProcessing();
+                // Once the treatment of class images is finished, remove the progress dialog
+                progressDialog.dismiss();
+            }
+        })).start();
 
         captureButton = (Button) findViewById(R.id.captureButton);
         captureButton.setOnClickListener(this);
@@ -114,9 +134,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    private void treatmentForClassImages() {
-        // Lecture des images par classe
-        // Classe Coca
+    /**
+     * Processing of class images which has to be done once when the application starts
+     */
+    private void classImagesInitialProcessing() {
+        // Reading images by class
+        // Coca-Cola class
         Uri[] uriCoca = new Uri[NUMBER_OF_CLASSES];
         File[] fileCoca = new File[NUMBER_OF_CLASSES];
         Mat[] modelCoca = new Mat[NUMBER_OF_CLASSES];
@@ -124,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         descriptorsReferencesCoca = new Mat[NUMBER_OF_CLASSES];
         KeyPointVector[] keyPointsCoca = new KeyPointVector[NUMBER_OF_CLASSES];
 
-        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
+        for (int i = 0 ; i < NUMBER_OF_CLASSES ; i++){
             uriCoca[i] = getUriFromDrawable("class_coca_" + i);
             fileCoca[i] = uriToCache(this,uriCoca[i],"class_coca_" + i);
             modelCoca[i] = imread(fileCoca[i].getAbsolutePath());
@@ -133,7 +156,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             keyPointsCoca[i] = new KeyPointVector();
         }
 
-        // Classe Pepsi
+        // Pepsi class
         Uri[] uriPepsi = new Uri[NUMBER_OF_CLASSES];
         File[] filePepsi = new File[NUMBER_OF_CLASSES];
         Mat[] modelPepsi = new Mat[NUMBER_OF_CLASSES];
@@ -141,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         descriptorsReferencesPepsi = new Mat[NUMBER_OF_CLASSES];
         KeyPointVector[] keyPointsPepsi = new KeyPointVector[NUMBER_OF_CLASSES];
 
-        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
+        for (int i = 0 ; i < NUMBER_OF_CLASSES ; i++){
             uriPepsi[i] = getUriFromDrawable("class_pepsi_" + i);
             filePepsi[i] = uriToCache(this,uriPepsi[i],"class_pepsi_" + i);
             modelPepsi[i] = imread(filePepsi[i].getAbsolutePath());
@@ -150,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             keyPointsPepsi[i] = new KeyPointVector();
         }
 
-        // Classe Sprite
+        // Sprite class
         Uri[] uriSprite = new Uri[NUMBER_OF_CLASSES];
         File[] fileSprite = new File[NUMBER_OF_CLASSES];
         Mat[] modelSprite = new Mat[NUMBER_OF_CLASSES];
@@ -158,7 +181,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         descriptorsReferencesSprite = new Mat[NUMBER_OF_CLASSES];
         KeyPointVector[] keyPointsSprite = new KeyPointVector[NUMBER_OF_CLASSES];
 
-        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
+        for (int i = 0 ; i < NUMBER_OF_CLASSES ; i++){
             uriSprite[i] = getUriFromDrawable("class_sprite_" + i);
             fileSprite[i] = uriToCache(this,uriSprite[i],"class_sprite_" + i);
             modelSprite[i] = imread(fileSprite[i].getAbsolutePath());
@@ -167,18 +190,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             keyPointsSprite[i] = new KeyPointVector();
         }
 
-        // Utilisation de SIFT
-        int nFeatures = 0;					// Nombre de meilleures caractéristiques à retenir
-        int nOctaveLayers = 3;				// Nombre de couches dans chaque octave
-        double contrastThreshold = 0.03;	// Seuil de contraste utilisé pour filtrer les caractéristiques faibles en régions semi-uniformes
-        int edgeThreshold = 10;				// Seuil utilisé pour filtrer les caractéristiques de pointe
-        double sigma = 1.6;					// Sigma de la gaussienne appliquée à l'image d'entrée à l'octave
+        // Using of SIFT
+        int nFeatures = 0;                  // FR : Nombre de meilleures caractéristiques à retenir
+        int nOctaveLayers = 3;              // FR : Nombre de couches dans chaque octave
+        double contrastThreshold = 0.03;    // FR : Seuil de contraste utilisé pour filtrer les caractéristiques faibles en régions semi-uniformes
+        int edgeThreshold = 10;             // FR : Seuil utilisé pour filtrer les caractéristiques de pointe
+        double sigma = 1.6;                 // FR : Sigma de la gaussienne appliquée à l'image d'entrée à l'octave
 
         Loader.load(opencv_calib3d.class);
         Loader.load(opencv_shape.class);
         sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
 
-        // Détection des images de classe
+        // Detecting class images
         for (int i = 0; i < referencesCoca.length; i++) {
             sift.detect(referencesCoca[i], keyPointsCoca[i]);
             sift.compute(referencesCoca[i], keyPointsCoca[i], descriptorsReferencesCoca[i]);
@@ -193,6 +216,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    /**
+     * Function to get a URI from a drawable
+     * @param drawableName The name of the drawable resource
+     * @return A Uri object corresponding to the drawable
+     */
     private Uri getUriFromDrawable(String drawableName) {
         int id = getResources().getIdentifier(drawableName, "drawable", getPackageName());
         Uri uri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
@@ -203,12 +231,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Copie un fichier de la galerie vers le cache de l'application.
+     * Copy a file from the gallery to the application cache
      *
-     * @param context contexte de l'application pour récupérer le dossier de cache.
-     * @param imgPath chemin sous forme d'Uri vers l'image dans la galerie.
-     * @param fileName nom du fichier de destination.
-     * @return fichier copié dans le cache de l'application.
+     * @param context Application context to retrieve the cache folder
+     * @param imgPath Path as Uri to the image in the gallery
+     * @param fileName Name of the destination file
+     * @return File copied to the application cache
      */
     public static File uriToCache(Context context, Uri imgPath, String fileName) {
         InputStream is;
@@ -251,6 +279,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             startActivity(intent);
         }
         else {
+            // If there is no selected image, inform the user that he has to choose a picture
             Toast toast = Toast.makeText(this, "You have to choose a picture", Toast.LENGTH_SHORT);
             toast.show();
         }
@@ -276,7 +305,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * This function set the imageView with the picture taken directly with the camera
+     * This function sets the imageView with the picture taken directly with the camera
      * @param selectedImageUri
      */
     public void setImageViewContentFromCamera(Uri selectedImageUri){
@@ -304,7 +333,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * This function set the imageView with the picture selected in the gallery
+     * This function sets the imageView with the picture selected in the gallery
      * @param selectedImageUri
      */
     public void setImageViewContentFromLibrary(Uri selectedImageUri){
@@ -326,7 +355,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * This function set the imageView with the selected picture
+     * This function sets the imageView with the selected picture
      * @param selectedImageUri
      */
     public void setImageViewContent(Uri selectedImageUri){
@@ -339,8 +368,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
     }
+
     /**
-     * This function check if we have the rights to read the external storage
+     * This function checks if we have the rights to read the external storage
      * @param context
      * @return Boolean
      */
@@ -374,7 +404,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * This function ask the permission to the user to continue
+     * This function asks the permission to the user to continue
      * @param msg
      * @param context
      * @param permission
@@ -412,6 +442,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         grantResults);
         }
     }
-
 
 }
