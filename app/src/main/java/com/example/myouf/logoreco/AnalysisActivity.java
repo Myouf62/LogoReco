@@ -1,10 +1,7 @@
 package com.example.myouf.logoreco;
 
-import android.content.ContentResolver;
-import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,9 +9,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,34 +29,26 @@ import static com.example.myouf.logoreco.MainActivity.uriToCache;
 import static org.bytedeco.javacpp.opencv_core.NORM_L2;
 import static org.bytedeco.javacpp.opencv_features2d.drawKeypoints;
 import static org.bytedeco.javacpp.opencv_features2d.drawMatches;
-import static org.bytedeco.javacpp.opencv_highgui.WINDOW_AUTOSIZE;
 import static org.bytedeco.javacpp.opencv_highgui.imshow;
 import static org.bytedeco.javacpp.opencv_highgui.namedWindow;
 import static org.bytedeco.javacpp.opencv_highgui.waitKey;
-import static org.bytedeco.javacpp.opencv_imgcodecs.imread;
-import org.bytedeco.javacpp.Loader;
-import org.bytedeco.javacpp.RealSense;
-import org.bytedeco.javacpp.opencv_calib3d;
-import org.bytedeco.javacpp.opencv_core;
-import org.bytedeco.javacpp.opencv_core.DMatch;
-import org.bytedeco.javacpp.opencv_core.DMatchVector;
-import org.bytedeco.javacpp.opencv_core.KeyPointVector;
+import static org.bytedeco.javacpp.opencv_highgui.imread;
+
+import org.bytedeco.javacpp.opencv_features2d.DMatch;
+import org.bytedeco.javacpp.opencv_features2d.DMatchVectorVector;
+//import org.bytedeco.javacpp.opencv_features2d.DMatchVectorVectorVector;
+import static org.bytedeco.javacpp.opencv_features2d.KeyPoint;
 import org.bytedeco.javacpp.opencv_core.Mat;
-import org.bytedeco.javacpp.opencv_core.*;
-import org.bytedeco.javacpp.opencv_core.Scalar;
-import org.bytedeco.javacpp.opencv_features2d;
 import org.bytedeco.javacpp.opencv_features2d.BFMatcher;
-import org.bytedeco.javacpp.opencv_features2d.DrawMatchesFlags;
-import org.bytedeco.javacpp.opencv_highgui;
-import org.bytedeco.javacpp.opencv_imgcodecs;
-import org.bytedeco.javacpp.opencv_shape;
-import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
+//import org.bytedeco.javacpp.opencv_imgcodecs;
+//import org.bytedeco.javacpp.opencv_shape;
 
 public class AnalysisActivity extends AppCompatActivity {
-
+/*
     ImageView imageViewResult;
     TextView textViewAnalysis;
     Uri selectedImageUri;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,7 +70,7 @@ public class AnalysisActivity extends AppCompatActivity {
         Mat image = imread(file.getAbsolutePath());
 
         Mat descriptorImage = new Mat();
-        KeyPointVector keyPointsImage = new KeyPointVector();
+        KeyPoint keyPointsImage = new KeyPoint();
 
         // Détection de l'image de base à comparer
         sift.detect(image, keyPointsImage);
@@ -92,7 +78,7 @@ public class AnalysisActivity extends AppCompatActivity {
 
         // Création du matcher
         BFMatcher matcher = new BFMatcher(NORM_L2, false);
-        DMatchVector matches = new DMatchVector();
+        DMatch matches = new DMatch();
 
         // Stockage des distances moyennes pour chaque classe
         float[] distanceMoyennesCoca = new float[NUMBER_OF_CLASSES];
@@ -101,21 +87,21 @@ public class AnalysisActivity extends AppCompatActivity {
         // Classe Coca
         for (int i = 0; i < referencesCoca.length; i++) {
             matcher.match(descriptorImage, descriptorsReferencesCoca[i], matches);
-            DMatchVector bestMatches = selectBest(matches,25);
+            DMatchVectorVector bestMatches = selectBest(matches,25);
             float distanceMoyenne = calculateAverageDistance(bestMatches);
             distanceMoyennesCoca[i] = distanceMoyenne;
         }
         // Classe Pepsi
         for (int i = 0; i < referencesPepsi.length; i++) {
             matcher.match(descriptorImage, descriptorsReferencesPepsi[i], matches);
-            DMatchVector bestMatches = selectBest(matches,25);
+            DMatchVectorVector bestMatches = selectBest(matches,25);
             float distanceMoyenne = calculateAverageDistance(bestMatches);
             distanceMoyennesPepsi[i] = distanceMoyenne;
         }
         // Classe Sprite
         for (int i = 0; i < referencesSprite.length; i++) {
             matcher.match(descriptorImage, descriptorsReferencesSprite[i], matches);
-            DMatchVector bestMatches = selectBest(matches,25);
+            DMatchVectorVector bestMatches = selectBest(matches,25);
             float distanceMoyenne = calculateAverageDistance(bestMatches);
             distanceMoyennesSprite[i] = distanceMoyenne;
         }
@@ -189,7 +175,7 @@ public class AnalysisActivity extends AppCompatActivity {
         }
     }
 
-    static float calculateAverageDistance(DMatchVector bestMatches) {
+    static float calculateAverageDistance(DMatchVectorVector bestMatches) {
         float Dm = 0;
         for(int i=0 ; i<bestMatches.size() ; i++) {
             Dm = Dm + bestMatches.get(i).distance();
@@ -204,17 +190,17 @@ public class AnalysisActivity extends AppCompatActivity {
      * @param numberToSelect
      * @return
      */
-    static DMatchVector selectBest(DMatchVector matches, int numberToSelect) {
+    /*static DMatchVectorVector selectBest(DMatch matches, int numberToSelect) {
         Log.i("foo","size: " + matches.size());
         DMatch[] sorted = toArray(matches);
         Arrays.sort(sorted, (a, b) -> {
             return a.lessThan(b) ? -1 : 1;
         });
         DMatch[] best = Arrays.copyOf(sorted, numberToSelect);
-        return new DMatchVector(best);
+        return new DMatchVectorVector(best);
     }
 
-    static DMatchVector selectGoodMatches(DMatchVector matches) {
+    static DMatchVectorVector selectGoodMatches(DMatchVectorVector matches) {
         ArrayList<DMatch> good = new ArrayList<DMatch>();
         DMatch[] sorted = toArray(matches);
         Arrays.sort(sorted, (a, b) -> {
@@ -232,10 +218,10 @@ public class AnalysisActivity extends AppCompatActivity {
         }
         DMatch[] goodArray = new DMatch[good.size()];
         good.toArray(goodArray);
-        return new DMatchVector(goodArray);
+        return new DMatchVectorVector(goodArray);
     }
 
-    static DMatch[] toArray(DMatchVector matches) {
+    static DMatch[] toArray(DMatchVectorVector matches) {
         assert matches.size() <= Integer.MAX_VALUE;
         int n = (int) matches.size();
         // Convert keyPoints to Scala sequence
@@ -244,5 +230,5 @@ public class AnalysisActivity extends AppCompatActivity {
             result[i] = new DMatch(matches.get(i));
         }
         return result;
-    }
+    }*/
 }

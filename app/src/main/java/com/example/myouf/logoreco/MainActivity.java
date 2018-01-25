@@ -26,23 +26,41 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+
 import org.bytedeco.javacpp.opencv_core;
+import org.bytedeco.javacpp.opencv_nonfree;
+import org.bytedeco.javacpp.opencv_nonfree.SIFT;
 import org.bytedeco.javacpp.opencv_core.Mat;
-import org.bytedeco.javacpp.opencv_core.KeyPointVector;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.opencv_calib3d;
-import org.bytedeco.javacpp.opencv_shape;
-import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
+import org.bytedeco.javacpp.opencv_ml;
 
-import static org.bytedeco.javacpp.opencv_imgcodecs.imread;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import static org.bytedeco.javacpp.opencv_highgui.imread;
+import static org.bytedeco.javacpp.opencv_features2d.KeyPoint;
+
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import static android.R.attr.data;
 
@@ -74,12 +92,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public static SIFT sift;
 
+    /* Partie connexion au serveur */
+    //Déclaration de la queue
+    RequestQueue queueJSON;
+    RequestQueue queueYML;
+    RequestQueue queueClassifier;
+
+    //URL d'accès au serveur (pour les request sur la queue)
+    String serverUrl = "http://www-rech.telecom-lille.fr/nonfreesift/";
+    private List<Brand> listBrand;
+
+    public static String getFileContents(final File file)throws IOException {
+        final InputStream inputStream = new FileInputStream(file);
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+        final StringBuilder stringBuilder = new StringBuilder();
+        boolean done = false;
+        while (!done) {
+            final String line = reader.readLine();
+            done = (line == null);
+
+            if (line != null) {
+                stringBuilder.append(line);
+            }
+        }
+        reader.close();
+        inputStream.close();
+        return stringBuilder.toString();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        treatmentForClassImages();
+        queueJSON = Volley.newRequestQueue(this);
+        queueYML = Volley.newRequestQueue(this);
+        queueClassifier = Volley.newRequestQueue(this);
 
         captureButton = (Button) findViewById(R.id.captureButton);
         captureButton.setOnClickListener(this);
@@ -91,7 +140,116 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         analysisButton.setOnClickListener(this);
 
         imageViewBase = (ImageView) findViewById(R.id.imageViewBase);
+        List classifiersList = new ArrayList<>();
 
+        //Request JSON
+        JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, serverUrl + "index.json",null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        if (response != null) {
+                            listBrand = new ArrayList<Brand>();
+                            try {
+                                JSONArray jsonArray = response.getJSONArray("brands");
+                                if (jsonArray != null) {
+                                    for (int i = 0 ; i < jsonArray.length() ; i++) {
+                                        JSONObject obj = jsonArray.getJSONObject(i);
+
+                                        JSONArray images = obj.getJSONArray("images");
+                                        String[] imgNames = new String[images.length()];
+
+                                        for (int j = 0 ; j < images.length() ; j++) {
+                                            imgNames[j] = images.get(j).toString();
+                                        }
+
+                                        Brand br = new Brand(obj.getString("brandname"), obj.getString("url"), obj.getString("classifier"), imgNames);
+                                        listBrand.add(br);
+                                    }
+                                }
+
+                                for (Brand brands : listBrand){
+                                    getClassifier(brands);
+                                }
+                            } catch (Exception ex) {
+
+                            }
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.d(TAG, "erreur jsonrequest");
+                    }
+                });
+
+        queueJSON.add(jsonRequest);
+
+        File fileYML = new File(this.getFilesDir(), "vocabulary.yml");
+        //Request YML
+        StringRequest stringRequestYML = new StringRequest(Request.Method.GET, serverUrl + "vocabulary.yml",
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        FileOutputStream outputStream;
+                        try {
+                            outputStream = openFileOutput("vocabulary.yml", Context.MODE_PRIVATE);
+                            outputStream.write(response.getBytes());
+                            outputStream.close();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        Log.d(TAG, "@@ ");
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // mTextView.setText("That didn't work!");
+                        Log.d(TAG, "@@ marche pas");
+                    }
+                }
+        );
+
+        queueYML.add(stringRequestYML);
+
+        //Toast.makeText(this, fileYML.getName().toString(), Toast.LENGTH_LONG).show();
+
+
+        //Code Prof V2
+        final opencv_core.Mat vocabulary;
+        Loader.load(opencv_core.class);
+        opencv_core.CvFileStorage storage = opencv_core.cvOpenFileStorage("vocabulary.yml", null, opencv_core.CV_STORAGE_READ);
+    }
+
+    private void getClassifier(Brand brand) {
+        File fileClassifier = new File(this.getFilesDir(), brand.getClassifier());
+        //Request Classifier
+        StringRequest stringRequestClassifier = new StringRequest(Request.Method.GET, serverUrl + "classifiers/" + brand.getClassifier(),
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        FileOutputStream outputStream;
+                        try {
+                            outputStream = openFileOutput(brand.getClassifier(), Context.MODE_PRIVATE);
+                            outputStream.write(response.getBytes());
+                            outputStream.close();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        Log.d(TAG, "@@ ");
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // mTextView.setText("That didn't work!");
+                        Log.d(TAG, "@@ marche pas");
+                    }
+                }
+        );
+
+        queueClassifier.add(stringRequestClassifier);
     }
 
     @Override
@@ -122,7 +280,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Mat[] modelCoca = new Mat[NUMBER_OF_CLASSES];
         referencesCoca = new Mat[NUMBER_OF_CLASSES];
         descriptorsReferencesCoca = new Mat[NUMBER_OF_CLASSES];
-        KeyPointVector[] keyPointsCoca = new KeyPointVector[NUMBER_OF_CLASSES];
+        KeyPoint[] keyPointsCoca = new KeyPoint[NUMBER_OF_CLASSES];
 
         for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
             uriCoca[i] = getUriFromDrawable("class_coca_" + i);
@@ -130,7 +288,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             modelCoca[i] = imread(fileCoca[i].getAbsolutePath());
             referencesCoca[i] = modelCoca[i];
             descriptorsReferencesCoca[i] = new Mat();
-            keyPointsCoca[i] = new KeyPointVector();
+            keyPointsCoca[i] = new KeyPoint();
         }
 
         // Classe Pepsi
@@ -139,7 +297,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Mat[] modelPepsi = new Mat[NUMBER_OF_CLASSES];
         referencesPepsi = new Mat[NUMBER_OF_CLASSES];
         descriptorsReferencesPepsi = new Mat[NUMBER_OF_CLASSES];
-        KeyPointVector[] keyPointsPepsi = new KeyPointVector[NUMBER_OF_CLASSES];
+        KeyPoint[] keyPointsPepsi = new KeyPoint[NUMBER_OF_CLASSES];
 
         for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
             uriPepsi[i] = getUriFromDrawable("class_pepsi_" + i);
@@ -147,7 +305,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             modelPepsi[i] = imread(filePepsi[i].getAbsolutePath());
             referencesPepsi[i] = modelPepsi[i];
             descriptorsReferencesPepsi[i] = new Mat();
-            keyPointsPepsi[i] = new KeyPointVector();
+            keyPointsPepsi[i] = new KeyPoint();
         }
 
         // Classe Sprite
@@ -156,7 +314,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Mat[] modelSprite = new Mat[NUMBER_OF_CLASSES];
         referencesSprite = new Mat[NUMBER_OF_CLASSES];
         descriptorsReferencesSprite = new Mat[NUMBER_OF_CLASSES];
-        KeyPointVector[] keyPointsSprite = new KeyPointVector[NUMBER_OF_CLASSES];
+        KeyPoint[] keyPointsSprite = new KeyPoint[NUMBER_OF_CLASSES];
 
         for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
             uriSprite[i] = getUriFromDrawable("class_sprite_" + i);
@@ -164,7 +322,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             modelSprite[i] = imread(fileSprite[i].getAbsolutePath());
             referencesSprite[i] = modelSprite[i];
             descriptorsReferencesSprite[i] = new Mat();
-            keyPointsSprite[i] = new KeyPointVector();
+            keyPointsSprite[i] = new KeyPoint();
         }
 
         // Utilisation de SIFT
@@ -175,8 +333,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         double sigma = 1.6;					// Sigma de la gaussienne appliquée à l'image d'entrée à l'octave
 
         Loader.load(opencv_calib3d.class);
-        Loader.load(opencv_shape.class);
-        sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+        //Loader.load(opencv_shape.class);
+        sift = new opencv_nonfree.SIFT(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
 
         // Détection des images de classe
         for (int i = 0; i < referencesCoca.length; i++) {
@@ -373,6 +531,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+
     /**
      * This function ask the permission to the user to continue
      * @param msg
@@ -412,6 +571,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         grantResults);
         }
     }
-
 
 }

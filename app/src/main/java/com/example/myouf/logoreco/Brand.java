@@ -11,7 +11,14 @@ public class Brand {
     private String brandName;
     private String url;
     private String classifier;
-    private List<String> images;
+    private String[] images;
+
+    public Brand(String brandname, String url, String classifier, String[] images) {
+        this.brandName=brandname;
+        this.url=url;
+        this.classifier=classifier;
+        this.images=images;
+    }
 
     public String getBrandName() {
         return brandName;
@@ -37,11 +44,12 @@ public class Brand {
         this.classifier = classifier;
     }
 
-    public List<String> getImages() {
+    public String[] getImages() {
         return images;
     }
 
-    public void setImages(List<String> images) {
+    public void setImages(String[] images) {
         this.images = images;
     }
+
 }
