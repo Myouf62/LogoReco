@@ -35,6 +35,7 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 
+import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacpp.opencv_nonfree;
 import org.bytedeco.javacpp.opencv_nonfree.SIFT;
@@ -100,7 +101,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     //URL d'accès au serveur (pour les request sur la queue)
     String serverUrl = "http://www-rech.telecom-lille.fr/nonfreesift/";
-    private List<Brand> listBrand;
+    public static List<Brand> listBrand;
+    public static File fileYML;
+    public static ArrayList<File> classifiersFileList;
 
     public static String getFileContents(final File file)throws IOException {
         final InputStream inputStream = new FileInputStream(file);
@@ -140,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         analysisButton.setOnClickListener(this);
 
         imageViewBase = (ImageView) findViewById(R.id.imageViewBase);
-        List classifiersList = new ArrayList<>();
+
 
         //Request JSON
         JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, serverUrl + "index.json",null,
@@ -166,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                         listBrand.add(br);
                                     }
                                 }
-
+                                classifiersFileList = new ArrayList<File>();
                                 for (Brand brands : listBrand){
                                     getClassifier(brands);
                                 }
@@ -185,8 +188,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         queueJSON.add(jsonRequest);
 
-        File fileYML = new File(this.getFilesDir(), "vocabulary.yml");
+
         //Request YML
+        fileYML = new File(this.getFilesDir(), "vocabulary.yml");
         StringRequest stringRequestYML = new StringRequest(Request.Method.GET, serverUrl + "vocabulary.yml",
                 new Response.Listener<String>() {
                     @Override
@@ -234,6 +238,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             outputStream = openFileOutput(brand.getClassifier(), Context.MODE_PRIVATE);
                             outputStream.write(response.getBytes());
                             outputStream.close();
+                            classifiersFileList.add(fileClassifier);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -270,85 +275,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
 
-    }
-
-    private void treatmentForClassImages() {
-        // Lecture des images par classe
-        // Classe Coca
-        Uri[] uriCoca = new Uri[NUMBER_OF_CLASSES];
-        File[] fileCoca = new File[NUMBER_OF_CLASSES];
-        Mat[] modelCoca = new Mat[NUMBER_OF_CLASSES];
-        referencesCoca = new Mat[NUMBER_OF_CLASSES];
-        descriptorsReferencesCoca = new Mat[NUMBER_OF_CLASSES];
-        KeyPoint[] keyPointsCoca = new KeyPoint[NUMBER_OF_CLASSES];
-
-        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
-            uriCoca[i] = getUriFromDrawable("class_coca_" + i);
-            fileCoca[i] = uriToCache(this,uriCoca[i],"class_coca_" + i);
-            modelCoca[i] = imread(fileCoca[i].getAbsolutePath());
-            referencesCoca[i] = modelCoca[i];
-            descriptorsReferencesCoca[i] = new Mat();
-            keyPointsCoca[i] = new KeyPoint();
-        }
-
-        // Classe Pepsi
-        Uri[] uriPepsi = new Uri[NUMBER_OF_CLASSES];
-        File[] filePepsi = new File[NUMBER_OF_CLASSES];
-        Mat[] modelPepsi = new Mat[NUMBER_OF_CLASSES];
-        referencesPepsi = new Mat[NUMBER_OF_CLASSES];
-        descriptorsReferencesPepsi = new Mat[NUMBER_OF_CLASSES];
-        KeyPoint[] keyPointsPepsi = new KeyPoint[NUMBER_OF_CLASSES];
-
-        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
-            uriPepsi[i] = getUriFromDrawable("class_pepsi_" + i);
-            filePepsi[i] = uriToCache(this,uriPepsi[i],"class_pepsi_" + i);
-            modelPepsi[i] = imread(filePepsi[i].getAbsolutePath());
-            referencesPepsi[i] = modelPepsi[i];
-            descriptorsReferencesPepsi[i] = new Mat();
-            keyPointsPepsi[i] = new KeyPoint();
-        }
-
-        // Classe Sprite
-        Uri[] uriSprite = new Uri[NUMBER_OF_CLASSES];
-        File[] fileSprite = new File[NUMBER_OF_CLASSES];
-        Mat[] modelSprite = new Mat[NUMBER_OF_CLASSES];
-        referencesSprite = new Mat[NUMBER_OF_CLASSES];
-        descriptorsReferencesSprite = new Mat[NUMBER_OF_CLASSES];
-        KeyPoint[] keyPointsSprite = new KeyPoint[NUMBER_OF_CLASSES];
-
-        for (int i=0 ; i<NUMBER_OF_CLASSES ; i++){
-            uriSprite[i] = getUriFromDrawable("class_sprite_" + i);
-            fileSprite[i] = uriToCache(this,uriSprite[i],"class_sprite_" + i);
-            modelSprite[i] = imread(fileSprite[i].getAbsolutePath());
-            referencesSprite[i] = modelSprite[i];
-            descriptorsReferencesSprite[i] = new Mat();
-            keyPointsSprite[i] = new KeyPoint();
-        }
-
-        // Utilisation de SIFT
-        int nFeatures = 0;					// Nombre de meilleures caractéristiques à retenir
-        int nOctaveLayers = 3;				// Nombre de couches dans chaque octave
-        double contrastThreshold = 0.03;	// Seuil de contraste utilisé pour filtrer les caractéristiques faibles en régions semi-uniformes
-        int edgeThreshold = 10;				// Seuil utilisé pour filtrer les caractéristiques de pointe
-        double sigma = 1.6;					// Sigma de la gaussienne appliquée à l'image d'entrée à l'octave
-
-        Loader.load(opencv_calib3d.class);
-        //Loader.load(opencv_shape.class);
-        sift = new opencv_nonfree.SIFT(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
-
-        // Détection des images de classe
-        for (int i = 0; i < referencesCoca.length; i++) {
-            sift.detect(referencesCoca[i], keyPointsCoca[i]);
-            sift.compute(referencesCoca[i], keyPointsCoca[i], descriptorsReferencesCoca[i]);
-        }
-        for (int i = 0; i < referencesPepsi.length; i++) {
-            sift.detect(referencesPepsi[i], keyPointsPepsi[i]);
-            sift.compute(referencesPepsi[i], keyPointsPepsi[i], descriptorsReferencesPepsi[i]);
-        }
-        for (int i = 0; i < referencesSprite.length; i++) {
-            sift.detect(referencesSprite[i], keyPointsSprite[i]);
-            sift.compute(referencesSprite[i], keyPointsSprite[i], descriptorsReferencesSprite[i]);
-        }
     }
 
     private Uri getUriFromDrawable(String drawableName) {
