@@ -144,8 +144,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         imageViewBase = (ImageView) findViewById(R.id.imageViewBase);
 
+        //Request Json
+        getJson();
 
-        //Request JSON
+        //Request YML
+        getYML();
+    }
+
+    /**
+     * Fonction qui génère une liste de classifier à transmettre à l'analysisActivity
+     *
+     * @param:brand objet brand comportant toutes les informations nécessaires au traitement
+     */
+    private void getClassifier(Brand brand) {
+        File fileClassifier = new File(this.getFilesDir(), brand.getClassifier());
+        StringRequest stringRequestClassifier = new StringRequest(Request.Method.GET, serverUrl + "classifiers/" + brand.getClassifier(),
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        FileOutputStream outputStream;
+                        try {
+                            outputStream = openFileOutput(brand.getClassifier(), Context.MODE_PRIVATE);
+                            outputStream.write(response.getBytes());
+                            outputStream.close();
+                            classifiersFileList.add(fileClassifier);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        Log.d(TAG, "@@ ");
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.d(TAG, "Erreur récupération Classifier");
+                    }
+                }
+        );
+
+        queueClassifier.add(stringRequestClassifier);
+    }
+
+    /**
+     * Recupération de l'index Json
+     */
+    private void getJson(){
         JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, serverUrl + "index.json",null,
                 new Response.Listener<JSONObject>() {
                     @Override
@@ -187,9 +230,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 });
 
         queueJSON.add(jsonRequest);
+    }
 
-
-        //Request YML
+    /*
+     * Recupération de fichier YML
+     */
+    public void getYML(){
         fileYML = new File(this.getFilesDir(), "vocabulary.yml");
         StringRequest stringRequestYML = new StringRequest(Request.Method.GET, serverUrl + "vocabulary.yml",
                 new Response.Listener<String>() {
@@ -216,45 +262,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         );
 
         queueYML.add(stringRequestYML);
-
-        //Toast.makeText(this, fileYML.getName().toString(), Toast.LENGTH_LONG).show();
-
-
-        //Code Prof V2
-        final opencv_core.Mat vocabulary;
-        Loader.load(opencv_core.class);
-        opencv_core.CvFileStorage storage = opencv_core.cvOpenFileStorage("vocabulary.yml", null, opencv_core.CV_STORAGE_READ);
-    }
-
-    private void getClassifier(Brand brand) {
-        File fileClassifier = new File(this.getFilesDir(), brand.getClassifier());
-        //Request Classifier
-        StringRequest stringRequestClassifier = new StringRequest(Request.Method.GET, serverUrl + "classifiers/" + brand.getClassifier(),
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        FileOutputStream outputStream;
-                        try {
-                            outputStream = openFileOutput(brand.getClassifier(), Context.MODE_PRIVATE);
-                            outputStream.write(response.getBytes());
-                            outputStream.close();
-                            classifiersFileList.add(fileClassifier);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        Log.d(TAG, "@@ ");
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        // mTextView.setText("That didn't work!");
-                        Log.d(TAG, "@@ marche pas");
-                    }
-                }
-        );
-
-        queueClassifier.add(stringRequestClassifier);
     }
 
     @Override
