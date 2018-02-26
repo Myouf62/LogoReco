@@ -34,22 +34,11 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
-
-import org.bytedeco.javacpp.Pointer;
-import org.bytedeco.javacpp.opencv_core;
-import org.bytedeco.javacpp.opencv_nonfree;
 import org.bytedeco.javacpp.opencv_nonfree.SIFT;
 import org.bytedeco.javacpp.opencv_core.Mat;
-import org.bytedeco.javacpp.Loader;
-import org.bytedeco.javacpp.opencv_calib3d;
-import org.bytedeco.javacpp.opencv_ml;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
-
-import static org.bytedeco.javacpp.opencv_highgui.imread;
-import static org.bytedeco.javacpp.opencv_features2d.KeyPoint;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -63,13 +52,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static android.R.attr.data;
-
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, Serializable {
 
     final String TAG=MainActivity.class.getName();
-    String pathToPhoto;
-    Bitmap photoBitmap;
     Button captureButton;
     Button libraryButton;
     Button analysisButton;
