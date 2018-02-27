@@ -36,6 +36,7 @@ import static org.bytedeco.javacpp.opencv_features2d.KeyPoint;
 import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacpp.opencv_features2d.FlannBasedMatcher;
 import org.bytedeco.javacpp.opencv_features2d.BOWImgDescriptorExtractor;
+import org.bytedeco.javacpp.opencv_imgproc;
 import org.bytedeco.javacpp.opencv_nonfree.SIFT;
 
 import org.bytedeco.javacpp.opencv_ml.CvSVM;
@@ -111,6 +112,7 @@ public class AnalysisActivity extends AppCompatActivity {
         File file = uriToCache(this,selectedImageUri,"imageToTreat");
 
         Mat image = imread(file.getAbsolutePath());
+        opencv_imgproc.resize(image, image, new opencv_core.Size(500, 700));
         detector.detectAndCompute(image, Mat.EMPTY, keypoints, inputDescriptors);
         bowide.compute(image, keypoints, response_hist);
 
