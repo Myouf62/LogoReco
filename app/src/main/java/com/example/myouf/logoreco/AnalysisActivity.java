@@ -58,6 +58,7 @@ import org.bytedeco.javacpp.opencv_features2d.BFMatcher;
 import org.bytedeco.javacpp.opencv_features2d.DrawMatchesFlags;
 import org.bytedeco.javacpp.opencv_highgui;
 import org.bytedeco.javacpp.opencv_imgcodecs;
+import org.bytedeco.javacpp.opencv_imgproc;
 import org.bytedeco.javacpp.opencv_shape;
 import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 
@@ -91,6 +92,7 @@ public class AnalysisActivity extends AppCompatActivity {
         File file = uriToCache(this,selectedImageUri,"imageToTreat");
 
         Mat image = imread(file.getAbsolutePath());
+        opencv_imgproc.resize(image, image, new opencv_core.Size(500, 700));
 
         Mat descriptorImage = new Mat();
         KeyPointVector keyPointsImage = new KeyPointVector();

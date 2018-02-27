@@ -325,6 +325,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         if (requestCode==CAMERA_REQUEST && resultCode==RESULT_OK){
+            selectedImageUri = Uri.fromFile(new File(mCurrentPhotoPath));
             Bitmap imageBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath, new BitmapFactory.Options());
             imageViewBase.setImageBitmap(imageBitmap);
             galleryAddPic();
