@@ -22,6 +22,8 @@
         android:layout_height="wrap_content"
         android:layout_weight="2"
         android:gravity="center"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColorLink="#045FB4"
         android:text="@string/txtViewAnalysis_result" />
 
 

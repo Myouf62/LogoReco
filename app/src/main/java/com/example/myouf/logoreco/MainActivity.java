@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     RequestQueue queueClassifier;
 
     //URL d'accès au serveur (pour les request sur la queue)
-    String serverUrl = "http://www-rech.telecom-lille.fr/nonfreesift/";
+    public static String serverUrl = "http://www-rech.telecom-lille.fr/freeorb/";
     public static List<Brand> listBrand;
     public static File fileYML;
     public static ArrayList<File> classifiersFileList;
