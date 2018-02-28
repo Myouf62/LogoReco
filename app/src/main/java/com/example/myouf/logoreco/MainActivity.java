@@ -270,10 +270,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
 
             case R.id.analysisButton:
+                if (isOnline() == false) {
+                    Toast.makeText(this,"You must have internet access to launch the analysis", Toast.LENGTH_LONG).show();
+                    Thread thread = new Thread(){
+                        @Override
+                        public void run() {
+                            try {
+                                Thread.sleep(3500); // As we are using LENGTH_LONG in Toast
+                                finish();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    };
+                    thread.start();
+                }
                 startAnalysisActivity();
                 break;
         }
 
+    }
+
+    public boolean isOnline() {
+        ConnectivityManager cm =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        return netInfo != null && netInfo.isConnectedOrConnecting();
     }
 
     private Uri getUriFromDrawable(String drawableName) {
