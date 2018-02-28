@@ -1,10 +1,13 @@
 package com.example.myouf.logoreco;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -53,6 +56,22 @@ public class AnalysisActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_analysis);
 
+        if (isOnline() == false) {
+            Toast.makeText(this,"You must have internet access to launch the analysis", Toast.LENGTH_LONG).show();
+            Thread thread = new Thread(){
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(3500); // As we are using LENGTH_LONG in Toast
+                        finish();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            thread.start();
+        }
+
         imageViewResult = (ImageView) findViewById(R.id.imageViewResult);
         textViewAnalysis = (TextView) findViewById(R.id.textViewAnalysis);
         // Make links clickable
@@ -62,6 +81,13 @@ public class AnalysisActivity extends AppCompatActivity {
         selectedImageUri = i.getParcelableExtra("selectedImageUri");
 
         startAnalysis();
+    }
+
+    public boolean isOnline() {
+        ConnectivityManager cm =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        return netInfo != null && netInfo.isConnectedOrConnecting();
     }
 
     /**
