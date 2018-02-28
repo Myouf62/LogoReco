@@ -321,13 +321,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onActivityResult(int requestCode, int resultCode, Intent intent){
         if (requestCode==PHOTO_LIB_REQUEST && resultCode==RESULT_OK){
             selectedImageUri = intent.getData();
-            setImageViewContentFromLibrary(selectedImageUri);
+            setImageView(selectedImageUri);
         }
 
         if (requestCode==CAMERA_REQUEST && resultCode==RESULT_OK){
             selectedImageUri = Uri.fromFile(new File(mCurrentPhotoPath));
-            Bitmap imageBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath, new BitmapFactory.Options());
-            imageViewBase.setImageBitmap(imageBitmap);
+            setImageView(selectedImageUri);
             galleryAddPic();
         }
     }
@@ -365,52 +364,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * This function sets the imageView with the picture taken directly with the camera
+     * This function set the imageView with the picture
      * @param selectedImageUri
      */
-    public void setImageViewContentFromCamera(Uri selectedImageUri){
+    public void setImageView(Uri selectedImageUri){
         if (checkPermissionREAD_EXTERNAL_STORAGE(this)) {
+            Bitmap sourceBitmap = null;
             try {
-                String[] orientationColumn = {MediaStore.Images.Media.ORIENTATION};
-                Cursor cur = getContentResolver().query(selectedImageUri, orientationColumn, null, null, null);
-                int orientation = -1;
-                if (cur != null && cur.moveToFirst()) {
-                    orientation = cur.getInt(cur.getColumnIndex(orientationColumn[0]));
-                }
-                Matrix matrix = new Matrix();
-                matrix.postRotate(orientation);
-                Bitmap sourceBitmap = BitmapFactory.decodeStream(this.getContentResolver().openInputStream(selectedImageUri), null, null);
-                ExifInterface exif = new ExifInterface(selectedImageUri.getPath());
-                int rotation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-                Bitmap adjustedBitmap = Bitmap.createBitmap(sourceBitmap, 0, 0, sourceBitmap.getWidth(), sourceBitmap.getHeight(), matrix, true);
-                imageViewBase.setImageBitmap(adjustedBitmap);
+                sourceBitmap = BitmapFactory.decodeStream(this.getContentResolver().openInputStream(selectedImageUri), null, null);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
             }
-        }
-    }
-
-    /**
-     * This function sets the imageView with the picture selected in the gallery
-     * @param selectedImageUri
-     */
-    public void setImageViewContentFromLibrary(Uri selectedImageUri){
-        try {
-            int rotation=0;
-            Bitmap sourceBitmap = BitmapFactory.decodeStream(this.getContentResolver().openInputStream(selectedImageUri), null, null);
-            Matrix matrix = new Matrix();
-            if (sourceBitmap.getHeight() < sourceBitmap.getWidth()){
-                rotation=90;
-            }
-            matrix.preRotate(rotation);
-            Bitmap adjustedBitmap = Bitmap.createBitmap(sourceBitmap, 0, 0, sourceBitmap.getWidth(), sourceBitmap.getHeight(), matrix, true);
-            imageViewBase.setImageBitmap(adjustedBitmap);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+            imageViewBase.setImageBitmap(sourceBitmap);
         }
     }
 
