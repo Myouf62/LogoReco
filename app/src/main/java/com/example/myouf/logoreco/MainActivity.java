@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //Declaration des constantes code de retour des requetes intent
     private static final int PHOTO_LIB_REQUEST = 1;
     private static final int CAMERA_REQUEST = 2;
-    public static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;;
+    public static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
 
     //Constante representant le nombre de classes utilisees
     public static final int NUMBER_OF_CLASSES = 3;
