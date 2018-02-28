@@ -29,6 +29,8 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.soundcloud.android.crop.Crop;
+
 import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacpp.opencv_core.KeyPointVector;
@@ -63,9 +65,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Bitmap photoBitmap;
     Button captureButton;
     Button libraryButton;
+    Button cropButton;
     Button analysisButton;
     ImageView imageViewBase;
     Uri selectedImageUri;
+    Uri croppedImageUri;
 
     // Return codes for intent queries
     private static final int PHOTO_LIB_REQUEST = 1;
@@ -113,6 +117,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         libraryButton = (Button) findViewById(R.id.libraryButton);
         libraryButton.setOnClickListener(this);
 
+        cropButton = (Button) findViewById(R.id.cropButton);
+        cropButton.setOnClickListener(this);
+
         analysisButton = (Button)findViewById(R.id.analysisButton);
         analysisButton.setOnClickListener(this);
 
@@ -130,6 +137,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             case R.id.libraryButton:
                 startPhotoLibraryActivity();
+                break;
+
+            case R.id.cropButton:
+                if (selectedImageUri != null) {
+                    try {
+                        createFinalCroppedFile();
+                        Crop.of(selectedImageUri, croppedImageUri).asSquare().start(this);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                else {
+                    // If there is no selected image, inform the user that he has to choose a picture
+                    Toast toast = Toast.makeText(this, "You have to choose a picture", Toast.LENGTH_SHORT);
+                    toast.show();
+                }
                 break;
 
             case R.id.analysisButton:
@@ -329,6 +352,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             setImageView(selectedImageUri);
             galleryAddPic();
         }
+
+        if (requestCode==Crop.REQUEST_CROP && resultCode==RESULT_OK) {
+            selectedImageUri = croppedImageUri;
+            croppedImageUri = null;
+            setImageView(selectedImageUri);
+        }
     }
 
     /**
@@ -350,6 +379,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // Save a file: path for use with ACTION_VIEW intents
         mCurrentPhotoPath = image.getAbsolutePath();
         return image;
+    }
+
+    private void createFinalCroppedFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "CROPPED_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName, // prefix
+                ".jpg", // suffix
+                storageDir // directory
+        );
+
+        croppedImageUri = Uri.fromFile(image);
     }
 
     /**

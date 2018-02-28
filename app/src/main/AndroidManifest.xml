@@ -22,6 +22,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".AnalysisActivity"></activity>
+        <activity android:name="com.soundcloud.android.crop.CropImageActivity" />
 
         <provider
             android:name="android.support.v4.content.FileProvider"
