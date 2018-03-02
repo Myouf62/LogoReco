@@ -2,6 +2,7 @@
     <string name="app_name">LogoReco</string>
     <string name="btnCapture_name">Capture</string>
     <string name="btnLibrary_name">Library</string>
+    <string name="btnCrop_name">Crop</string>
     <string name="btnAnalysis_name">Analysis</string>
     <string name="txtViewAnalysis_result">After analysis, the brand identified in your image seems to be:\u0020</string>
 </resources>

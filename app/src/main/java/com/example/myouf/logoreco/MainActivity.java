@@ -8,11 +8,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.ContentResolver;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
-import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -23,7 +20,7 @@ import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -31,45 +28,38 @@ import android.widget.Toast;
 
 import com.soundcloud.android.crop.Crop;
 
-import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacpp.opencv_core.KeyPointVector;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.opencv_calib3d;
 import org.bytedeco.javacpp.opencv_shape;
 import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
-
-import static android.R.attr.progress;
 import static org.bytedeco.javacpp.opencv_imgcodecs.imread;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import static android.R.attr.data;
 
 /**
  * Main activity launched when the application starts
  */
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    final String TAG = MainActivity.class.getName();
-
-    String pathToPhoto;
-    Bitmap photoBitmap;
+    // Useful variables
     Button captureButton;
     Button libraryButton;
     Button cropButton;
     Button analysisButton;
     ImageView imageViewBase;
+    ProgressDialog progressDialog;
     Uri selectedImageUri;
     Uri croppedImageUri;
+
+    private String mCurrentPhotoPath;
 
     // Return codes for intent queries
     private static final int PHOTO_LIB_REQUEST = 1;
@@ -87,11 +77,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public static Mat[] referencesSprite;
     public static Mat[] descriptorsReferencesSprite;
     public static SIFT sift;
-
-    private String mCurrentPhotoPath;
-
-    // Progress dialog used during the treatment of class images
-    ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,7 +109,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         analysisButton.setOnClickListener(this);
 
         imageViewBase = (ImageView) findViewById(R.id.imageViewBase);
-
     }
 
     @Override
@@ -151,6 +135,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 else {
                     // If there is no selected image, inform the user that he has to choose a picture
                     Toast toast = Toast.makeText(this, "You have to choose a picture", Toast.LENGTH_SHORT);
+                    toast.setGravity(Gravity.CENTER, 0, 0);
                     toast.show();
                 }
                 break;
@@ -159,7 +144,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 startAnalysisActivity();
                 break;
         }
-
     }
 
     /**
@@ -175,7 +159,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         descriptorsReferencesCoca = new Mat[NUMBER_OF_CLASSES];
         KeyPointVector[] keyPointsCoca = new KeyPointVector[NUMBER_OF_CLASSES];
 
-        for (int i = 0 ; i < NUMBER_OF_CLASSES ; i++){
+        for (int i = 0 ; i < NUMBER_OF_CLASSES ; i++) {
             uriCoca[i] = getUriFromDrawable("class_coca_" + i);
             fileCoca[i] = uriToCache(this,uriCoca[i],"class_coca_" + i);
             modelCoca[i] = imread(fileCoca[i].getAbsolutePath());
@@ -192,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         descriptorsReferencesPepsi = new Mat[NUMBER_OF_CLASSES];
         KeyPointVector[] keyPointsPepsi = new KeyPointVector[NUMBER_OF_CLASSES];
 
-        for (int i = 0 ; i < NUMBER_OF_CLASSES ; i++){
+        for (int i = 0 ; i < NUMBER_OF_CLASSES ; i++) {
             uriPepsi[i] = getUriFromDrawable("class_pepsi_" + i);
             filePepsi[i] = uriToCache(this,uriPepsi[i],"class_pepsi_" + i);
             modelPepsi[i] = imread(filePepsi[i].getAbsolutePath());
@@ -209,7 +193,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         descriptorsReferencesSprite = new Mat[NUMBER_OF_CLASSES];
         KeyPointVector[] keyPointsSprite = new KeyPointVector[NUMBER_OF_CLASSES];
 
-        for (int i = 0 ; i < NUMBER_OF_CLASSES ; i++){
+        for (int i = 0 ; i < NUMBER_OF_CLASSES ; i++) {
             uriSprite[i] = getUriFromDrawable("class_sprite_" + i);
             fileSprite[i] = uriToCache(this,uriSprite[i],"class_sprite_" + i);
             modelSprite[i] = imread(fileSprite[i].getAbsolutePath());
@@ -300,7 +284,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    protected void startAnalysisActivity(){
+    /**
+     * Called when we want to start the image analysis
+     */
+    protected void startAnalysisActivity() {
         Intent intent = new Intent(this, AnalysisActivity.class);
         if (selectedImageUri != null) {
             intent.putExtra("selectedImageUri", selectedImageUri);
@@ -309,19 +296,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else {
             // If there is no selected image, inform the user that he has to choose a picture
             Toast toast = Toast.makeText(this, "You have to choose a picture", Toast.LENGTH_SHORT);
+            toast.setGravity(Gravity.CENTER, 0, 0);
             toast.show();
         }
     }
 
-    protected void startPhotoLibraryActivity(){
+    /**
+     * Called when we want to choose a picture from the library
+     */
+    protected void startPhotoLibraryActivity() {
         Intent photoLibIntent = new Intent();
         photoLibIntent.setType("image/*");
         photoLibIntent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(photoLibIntent,PHOTO_LIB_REQUEST);
     }
 
+    /**
+     * Called when we want to take a picture with the camera
+     */
     protected void startCaptureActivity() {
         Intent takePicture = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Ensure that there's a camera activity to handle the intent
         if (takePicture.resolveActivity(getPackageManager()) != null) {
             // Create the File where the photo should go
             File photoFile = null;
@@ -329,6 +324,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 // Error occurred while creating the File
+                ex.printStackTrace();
             }
             // Continue only if the File was successfully created
             if (photoFile != null) {
@@ -341,19 +337,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    protected void onActivityResult(int requestCode, int resultCode, Intent intent){
-        if (requestCode==PHOTO_LIB_REQUEST && resultCode==RESULT_OK){
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        // If we come from the library
+        if (requestCode == PHOTO_LIB_REQUEST && resultCode == RESULT_OK) {
             selectedImageUri = intent.getData();
             setImageView(selectedImageUri);
         }
 
-        if (requestCode==CAMERA_REQUEST && resultCode==RESULT_OK){
+        // If we come from the camera
+        if (requestCode == CAMERA_REQUEST && resultCode == RESULT_OK) {
             selectedImageUri = Uri.fromFile(new File(mCurrentPhotoPath));
             setImageView(selectedImageUri);
             galleryAddPic();
         }
 
-        if (requestCode==Crop.REQUEST_CROP && resultCode==RESULT_OK) {
+        // If we come from the crop function
+        if (requestCode == Crop.REQUEST_CROP && resultCode == RESULT_OK) {
             selectedImageUri = croppedImageUri;
             croppedImageUri = null;
             setImageView(selectedImageUri);
@@ -381,6 +380,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return image;
     }
 
+    /**
+     * Private method to create a final cropped file with unique file name
+     * @throws IOException
+     */
     private void createFinalCroppedFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -407,10 +410,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * This function set the imageView with the picture
-     * @param selectedImageUri
+     * This function sets a picture in the ImageView
+     * @param selectedImageUri URI of the picture
      */
-    public void setImageView(Uri selectedImageUri){
+    public void setImageView(Uri selectedImageUri) {
         if (checkPermissionREAD_EXTERNAL_STORAGE(this)) {
             Bitmap sourceBitmap = null;
             try {
@@ -419,21 +422,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 e.printStackTrace();
             }
             imageViewBase.setImageBitmap(sourceBitmap);
-        }
-    }
-
-    /**
-     * This function sets the imageView with the selected picture
-     * @param selectedImageUri
-     */
-    public void setImageViewContent(Uri selectedImageUri){
-        if (checkPermissionREAD_EXTERNAL_STORAGE(this)) {
-            try {
-                Bitmap srcBmp = BitmapFactory.decodeStream(this.getContentResolver().openInputStream(selectedImageUri), null, null);
-                imageViewBase.setImageBitmap(srcBmp);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
         }
     }
 
@@ -510,5 +498,4 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         grantResults);
         }
     }
-
 }
