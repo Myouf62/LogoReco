@@ -1,5 +1,6 @@
 package com.example.myouf.logoreco;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
@@ -37,6 +38,7 @@ public class AnalysisActivity extends AppCompatActivity {
     ImageView imageViewResult;
     TextView textViewAnalysis;
     Uri selectedImageUri;
+    ProgressDialog progressDialog;
     Spanned resultText;
 
     @Override
@@ -53,7 +55,18 @@ public class AnalysisActivity extends AppCompatActivity {
 
         selectedImageUri = i.getParcelableExtra("selectedImageUri");
 
-        startAnalysis();
+        // Show the progress dialog
+        progressDialog = ProgressDialog.show(this, "Please wait", "Analysis of your image is in progress...", true);
+
+        // Run the treatment of analysis in another thread
+        new Thread((new Runnable() {
+            @Override
+            public void run() {
+                startAnalysis();
+                // Once the analysis is finished, remove the progress dialog
+                progressDialog.dismiss();
+            }
+        })).start();
     }
 
     /**
@@ -121,9 +134,14 @@ public class AnalysisActivity extends AppCompatActivity {
 
         for (Brand brand : listBrand) {
             if (brand.getClassifier().equals(bestMatch)) {
-                imageViewResult.setImageURI(selectedImageUri);
                 resultText = Html.fromHtml("<a href='" + brand.getUrl() + "'>" + brand.getBrandName() + "</a>");
-                textViewAnalysis.append(resultText);
+                AnalysisActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        imageViewResult.setImageURI(selectedImageUri);
+                        textViewAnalysis.append(resultText);
+                    }
+                });
             }
         }
     }
