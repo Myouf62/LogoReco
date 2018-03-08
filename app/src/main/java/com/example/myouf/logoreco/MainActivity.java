@@ -6,12 +6,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.content.ContentResolver;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
-import android.media.ExifInterface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -25,6 +21,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -39,28 +36,26 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.soundcloud.android.crop.Crop;
 
-import org.bytedeco.javacpp.opencv_nonfree.SIFT;
-import org.bytedeco.javacpp.opencv_core.Mat;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Main activity launched when the application starts
+ */
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, Serializable {
 
+    // Useful variables
     final String TAG=MainActivity.class.getName();
     Button captureButton;
     Button libraryButton;
@@ -70,63 +65,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Uri selectedImageUri;
     Uri croppedImageUri;
 
-    //Declaration des constantes code de retour des requetes intent
+    // CONST return codes from intent requests
     private static final int PHOTO_LIB_REQUEST = 1;
     private static final int CAMERA_REQUEST = 2;
     public static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
 
-    //Constante representant le nombre de classes utilisees
-    public static final int NUMBER_OF_CLASSES = 3;
-
-    public static Mat[] referencesCoca;
-    public static Mat[] descriptorsReferencesCoca;
-    public static Mat[] referencesPepsi;
-    public static Mat[] descriptorsReferencesPepsi;
-    public static Mat[] referencesSprite;
-    public static Mat[] descriptorsReferencesSprite;
-
-    public static SIFT sift;
-
     private String mCurrentPhotoPath;
 
-    /* Partie connexion au serveur */
-    //Déclaration de la queue
+    /* Part : connection to the server */
+    // Queues declaration
     RequestQueue queueJSON;
     RequestQueue queueYML;
     RequestQueue queueClassifier;
 
-    //URL d'accès au serveur (pour les request sur la queue)
+    // Server access url (for the requests on the queues)
     public static String serverUrl = "http://www-rech.telecom-lille.fr/freeorb/";
     public static List<Brand> listBrand;
     public static File fileYML;
     public static ArrayList<File> classifiersFileList;
-
-    public static String getFileContents(final File file)throws IOException {
-        final InputStream inputStream = new FileInputStream(file);
-        final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-
-        final StringBuilder stringBuilder = new StringBuilder();
-        boolean done = false;
-        while (!done) {
-            final String line = reader.readLine();
-            done = (line == null);
-
-            if (line != null) {
-                stringBuilder.append(line);
-            }
-        }
-        reader.close();
-        inputStream.close();
-        return stringBuilder.toString();
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Check if device has internet access
         if (isOnline() == false) {
-            Toast.makeText(this,"You must have internet access to launch the analysis", Toast.LENGTH_LONG).show();
+            Toast toast = Toast.makeText(this, "You must have internet access to launch the analysis", Toast.LENGTH_LONG);
+            toast.setGravity(Gravity.CENTER, 0, 0);
+            toast.show();
             Thread thread = new Thread(){
                 @Override
                 public void run() {
@@ -159,13 +126,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         imageViewBase = (ImageView) findViewById(R.id.imageViewBase);
 
-        //Request Json
+        // JSON request
         getJson();
 
-        //Request YML
+        // YML request
         getYML();
     }
 
+    /**
+     * Check if device has internet access
+     * @return True if the device is online, false if not
+     */
     public boolean isOnline() {
         ConnectivityManager cm =
                 (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -174,9 +145,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * Fonction qui génère une liste de classifier à transmettre à l'analysisActivity
-     *
-     * @param:brand objet brand comportant toutes les informations nécessaires au traitement
+     * Function that generates a list of classifiers to transmit to analysis activity
+     * @param brand Brand object containing all the information necessary for processing
      */
     private void getClassifier(Brand brand) {
         File fileClassifier = new File(this.getFilesDir(), brand.getClassifier());
@@ -199,16 +169,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Log.d(TAG, "Erreur récupération Classifier");
+                        Log.d(TAG, "Error retrieving the classifier");
                     }
                 }
         );
-
         queueClassifier.add(stringRequestClassifier);
     }
 
     /**
-     * Recupération de l'index Json
+     * Retrieve the JSON index
      */
     private void getJson(){
         JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, serverUrl + "index.json",null,
@@ -239,7 +208,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     getClassifier(brands);
                                 }
                             } catch (Exception ex) {
-
+                                ex.printStackTrace();
                             }
                         }
                     }
@@ -247,15 +216,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Log.d(TAG, "erreur jsonrequest");
+                        Log.d(TAG, "Error during JSON request");
                     }
                 });
-
         queueJSON.add(jsonRequest);
     }
 
-    /*
-     * Recupération de fichier YML
+    /**
+     * Retrieve the YML file
      */
     public void getYML(){
         fileYML = new File(this.getFilesDir(), "vocabulary.yml");
@@ -277,12 +245,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        // mTextView.setText("That didn't work!");
-                        Log.d(TAG, "@@ marche pas");
+                        Log.d(TAG, "Error during YML request");
                     }
                 }
         );
-
         queueYML.add(stringRequestYML);
     }
 
@@ -310,6 +276,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 else {
                     // If there is no selected image, inform the user that he has to choose a picture
                     Toast toast = Toast.makeText(this, "You have to choose a picture", Toast.LENGTH_SHORT);
+                    toast.setGravity(Gravity.CENTER, 0, 0);
                     toast.show();
                 }
                 break;
@@ -321,22 +288,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    private Uri getUriFromDrawable(String drawableName) {
-        int id = getResources().getIdentifier(drawableName, "drawable", getPackageName());
-        Uri uri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +
-                "://" + getResources().getResourcePackageName(id) +
-                "/" + getResources().getResourceTypeName(id) +
-                "/" + getResources().getResourceEntryName(id));
-        return uri;
-    }
-
     /**
-     * Copie un fichier de la galerie vers le cache de l'application.
+     * Copy a file from the gallery to the application cache.
      *
-     * @param context contexte de l'application pour récupérer le dossier de cache.
-     * @param imgPath chemin sous forme d'Uri vers l'image dans la galerie.
-     * @param fileName nom du fichier de destination.
-     * @return fichier copié dans le cache de l'application.
+     * @param context Application context to retrieve the cache folder
+     * @param imgPath Path in URI form to the image in the gallery
+     * @param fileName Name of the destination file
+     * @return File copied to the application cache
      */
     public static File uriToCache(Context context, Uri imgPath, String fileName) {
         InputStream is;
@@ -372,6 +330,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    /**
+     * Called when we want to start the image analysis
+     */
     protected void startAnalysisActivity(){
         Intent intent = new Intent(this, AnalysisActivity.class);
         if (selectedImageUri != null) {
@@ -380,12 +341,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         else {
             Toast toast = Toast.makeText(this, "You have to choose a picture", Toast.LENGTH_SHORT);
+            toast.setGravity(Gravity.CENTER, 0, 0);
             toast.show();
         }
     }
 
+    /**
+     * Called when we want to choose a picture from the library
+     */
+    protected void startPhotoLibraryActivity(){
+        Intent photoLibIntent = new Intent();
+        photoLibIntent.setType("image/*");
+        photoLibIntent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(photoLibIntent,PHOTO_LIB_REQUEST);
+    }
+
+    /**
+     * Called when we want to take a picture with the camera
+     */
     protected void startCaptureActivity() {
         Intent takePicture = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Ensure that there's a camera activity to handle the intent
         if (takePicture.resolveActivity(getPackageManager()) != null) {
             // Create the File where the photo should go
             File photoFile = null;
@@ -393,6 +369,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 // Error occurred while creating the File
+                ex.printStackTrace();
             }
             // Continue only if the File was successfully created
             if (photoFile != null) {
@@ -405,26 +382,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    protected void startPhotoLibraryActivity(){
-        Intent photoLibIntent = new Intent();
-        photoLibIntent.setType("image/*");
-        photoLibIntent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(photoLibIntent,PHOTO_LIB_REQUEST);
-    }
-
     protected void onActivityResult(int requestCode, int resultCode, Intent intent){
-        if (requestCode==PHOTO_LIB_REQUEST && resultCode==RESULT_OK){
+        // If we come from the library
+        if (requestCode == PHOTO_LIB_REQUEST && resultCode == RESULT_OK){
             selectedImageUri = intent.getData();
             setImageView(selectedImageUri);
         }
 
-        if (requestCode==CAMERA_REQUEST && resultCode==RESULT_OK){
+        // If we come from the camera
+        if (requestCode == CAMERA_REQUEST && resultCode == RESULT_OK){
             selectedImageUri = Uri.fromFile(new File(mCurrentPhotoPath));
             setImageView(selectedImageUri);
             galleryAddPic();
         }
 
-        if (requestCode==Crop.REQUEST_CROP && resultCode==RESULT_OK) {
+        // If we come from the crop function
+        if (requestCode == Crop.REQUEST_CROP && resultCode == RESULT_OK) {
             selectedImageUri = croppedImageUri;
             croppedImageUri = null;
             setImageView(selectedImageUri);
@@ -452,6 +425,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return image;
     }
 
+    /**
+     * Private method to create a final cropped file with unique file name
+     * @throws IOException
+     */
     private void createFinalCroppedFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -478,10 +455,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * This function set the imageView with the picture
-     * @param selectedImageUri
+     * This function sets a picture in the ImageView
+     * @param selectedImageUri URI of the picture
      */
-    public void setImageView(Uri selectedImageUri){
+    public void setImageView(Uri selectedImageUri) {
         if (checkPermissionREAD_EXTERNAL_STORAGE(this)) {
             Bitmap sourceBitmap = null;
             try {
@@ -493,23 +470,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-
     /**
-     * This function set the imageView with the selected picture
-     * @param selectedImageUri
-     */
-    public void setImageViewContent(Uri selectedImageUri){
-        if (checkPermissionREAD_EXTERNAL_STORAGE(this)) {
-            try {
-                Bitmap srcBmp = BitmapFactory.decodeStream(this.getContentResolver().openInputStream(selectedImageUri), null, null);
-                imageViewBase.setImageBitmap(srcBmp);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-    /**
-     * This function check if we have the rights to read the external storage
+     * This function checks if we have the rights to read the external storage
      * @param context
      * @return Boolean
      */
@@ -544,7 +506,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     /**
-     * This function ask the permission to the user to continue
+     * This function asks the permission to the user to continue
      * @param msg
      * @param context
      * @param permission

@@ -1,18 +1,23 @@
 package com.example.myouf.logoreco;
 
-import java.util.List;
-
 /**
- * Created by myouf on 22/01/2018.
+ * Class representing a brand
  */
-
 public class Brand {
 
+    // Useful variables
     private String brandName;
     private String url;
     private String classifier;
     private String[] images;
 
+    /**
+     * Constructor
+     * @param brandname Name of the brand
+     * @param url Url of the website
+     * @param classifier Name of the classifier
+     * @param images Table of strings naming the images
+     */
     public Brand(String brandname, String url, String classifier, String[] images) {
         this.brandName=brandname;
         this.url=url;

@@ -1,13 +1,6 @@
 package com.example.myouf.logoreco;
 
-import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -16,36 +9,31 @@ import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 import static com.example.myouf.logoreco.MainActivity.classifiersFileList;
 import static com.example.myouf.logoreco.MainActivity.listBrand;
-import static com.example.myouf.logoreco.MainActivity.serverUrl;
 import static com.example.myouf.logoreco.MainActivity.uriToCache;
-import static org.bytedeco.javacpp.opencv_highgui.imread;
 
+import static org.bytedeco.javacpp.opencv_features2d.KeyPoint;
+import static org.bytedeco.javacpp.opencv_highgui.imread;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.opencv_core;
-import org.bytedeco.javacpp.opencv_core.MatVector;
-import static org.bytedeco.javacpp.opencv_features2d.KeyPoint;
 import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacpp.opencv_features2d.FlannBasedMatcher;
 import org.bytedeco.javacpp.opencv_features2d.BOWImgDescriptorExtractor;
 import org.bytedeco.javacpp.opencv_imgproc;
 import org.bytedeco.javacpp.opencv_nonfree.SIFT;
-
 import org.bytedeco.javacpp.opencv_ml.CvSVM;
 
+/**
+ * Analysis activity launched when we want to analyse a picture
+ */
 public class AnalysisActivity extends AppCompatActivity {
 
+    // Useful variables
     ImageView imageViewResult;
     TextView textViewAnalysis;
     Uri selectedImageUri;
@@ -58,6 +46,7 @@ public class AnalysisActivity extends AppCompatActivity {
 
         imageViewResult = (ImageView) findViewById(R.id.imageViewResult);
         textViewAnalysis = (TextView) findViewById(R.id.textViewAnalysis);
+
         // Make links clickable
         textViewAnalysis.setMovementMethod(LinkMovementMethod.getInstance());
         Intent i = getIntent();
@@ -82,27 +71,26 @@ public class AnalysisActivity extends AppCompatActivity {
         vocabulary = new opencv_core.Mat(cvMat);
         opencv_core.cvReleaseFileStorage(storage);
 
-        //create SIFT feature point extracter
+        // Create SIFT feature point extracter
         final SIFT detector;
-        // default parameters ""opencv2/features2d/features2d.hpp""
+        // Default parameters
         detector = new SIFT(0, 3, 0.04, 10, 1.6);
 
-        //create a matcher with FlannBased Euclidien distance (possible also with BruteForce-Hamming)
+        // Create a matcher with FlannBased Euclidien distance (possible also with BruteForce-Hamming)
         final FlannBasedMatcher matcher;
         matcher = new FlannBasedMatcher();
 
-        //create BoF (or BoW) descriptor extractor
+        // Create BoF (or BoW) descriptor extractor
         final BOWImgDescriptorExtractor bowide;
         bowide = new BOWImgDescriptorExtractor(detector.asDescriptorExtractor(), matcher);
 
-        //Set the dictionary with the vocabulary we created in the first step
+        // Set the dictionary with the vocabulary we created in the first step
         bowide.setVocabulary(vocabulary);
 
         final CvSVM[] classifiers;
         classifiers = new CvSVM[classifiersFileList.size()];
         for (int i = 0 ; i < classifiersFileList.size() ; i++) {
             classifiers[i] = new CvSVM();
-            String test = this.getFilesDir() + "/" + classifiersFileList.get(i).getName();
             classifiers[i].load(this.getFilesDir() + "/" + classifiersFileList.get(i).getName());
         }
 
@@ -110,9 +98,7 @@ public class AnalysisActivity extends AppCompatActivity {
         KeyPoint keypoints = new KeyPoint();
         Mat inputDescriptors = new Mat();
 
-        MatVector imagesVec;
-
-        File file = uriToCache(this,selectedImageUri,"imageToTreat");
+        File file = uriToCache(this, selectedImageUri, "imageToTreat");
 
         Mat image = imread(file.getAbsolutePath());
         opencv_imgproc.resize(image, image, new opencv_core.Size(500, 700));
